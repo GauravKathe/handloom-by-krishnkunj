@@ -6,6 +6,9 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import heroImage1 from "@/assets/saree-hero-1.jpg";
+import heroImage2 from "@/assets/saree-hero-2.jpg";
+import heroImage3 from "@/assets/saree-hero-3.jpg";
 
 export default function Home() {
   const [categories, setCategories] = useState<any[]>([]);
@@ -35,17 +38,17 @@ export default function Home() {
     {
       title: "Elegance Woven With Love",
       subtitle: "Discover the art of traditional handloom sarees",
-      image: "/placeholder.svg",
+      image: heroImage1,
     },
     {
       title: "Where Tradition Meets Soul",
       subtitle: "Premium Paithani sarees crafted by master artisans",
-      image: "/placeholder.svg",
+      image: heroImage2,
     },
     {
       title: "Heritage in Every Thread",
       subtitle: "Supporting women artisans across India",
-      image: "/placeholder.svg",
+      image: heroImage3,
     },
   ];
 
@@ -63,16 +66,22 @@ export default function Home() {
             <CarouselContent>
               {heroSlides.map((slide, index) => (
                 <CarouselItem key={index}>
-                  <div className="relative h-[500px] md:h-[600px] bg-gradient-to-r from-primary/20 to-secondary/20">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-center px-4 max-w-3xl">
-                        <h2 className="text-4xl md:text-6xl font-bold text-primary mb-4 animate-fade-in">
+                  <div className="relative h-[400px] md:h-[600px] overflow-hidden">
+                    <img 
+                      src={slide.image} 
+                      alt={slide.title}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary/40 to-transparent" />
+                    <div className="absolute inset-0 flex items-center justify-center md:justify-start">
+                      <div className="text-center md:text-left px-4 md:px-16 max-w-3xl">
+                        <h2 className="text-3xl md:text-6xl font-bold text-background mb-4 animate-fade-in drop-shadow-lg">
                           {slide.title}
                         </h2>
-                        <p className="text-lg md:text-xl text-foreground/80 mb-8 animate-fade-in">
+                        <p className="text-base md:text-xl text-background/90 mb-8 animate-fade-in drop-shadow-md">
                           {slide.subtitle}
                         </p>
-                        <Button size="lg" asChild className="animate-fade-in">
+                        <Button size="lg" asChild className="animate-fade-in shadow-lg">
                           <Link to="/shop">Explore Collection</Link>
                         </Button>
                       </div>
