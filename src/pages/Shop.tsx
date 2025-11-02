@@ -14,7 +14,7 @@ export default function Shop() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>(searchParams.get("category") || "all");
-  const [priceRange, setPriceRange] = useState([0, 50000]);
+  const [priceRange, setPriceRange] = useState([0, 500000]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [availableOnly, setAvailableOnly] = useState(true);
 
@@ -94,8 +94,8 @@ export default function Shop() {
                 </Label>
                 <Slider
                   min={0}
-                  max={50000}
-                  step={1000}
+                  max={500000}
+                  step={5000}
                   value={priceRange}
                   onValueChange={setPriceRange}
                   className="mt-2"

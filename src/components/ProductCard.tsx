@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
@@ -8,16 +9,33 @@ interface ProductCardProps {
 }
 
 export const ProductCard = ({ product }: ProductCardProps) => {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const images = product.images || ["/placeholder.svg"];
+
   return (
     <Link to={`/product/${product.id}`} className="group">
       <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 h-full">
         <CardContent className="p-0">
-          <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-secondary/10 to-primary/10">
-            <img
-              src={product.images?.[0] || "/placeholder.svg"}
-              alt={product.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
+          <div 
+            className="relative aspect-square overflow-hidden bg-gradient-to-br from-secondary/10 to-primary/10"
+            onMouseEnter={() => {
+              if (images.length > 1) {
+                setCurrentImageIndex(1);
+              }
+            }}
+            onMouseLeave={() => setCurrentImageIndex(0)}
+          >
+            {images.map((image, index) => (
+              <img
+                key={index}
+                src={image}
+                alt={`${product.name} - ${index + 1}`}
+                className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-500 ${
+                  currentImageIndex === index ? "opacity-100 group-hover:scale-105" : "opacity-0"
+                }`}
+                style={{ transitionProperty: 'opacity, transform' }}
+              />
+            ))}
             <div className="absolute top-3 right-3 flex flex-col gap-2">
               {product.is_new_arrival && (
                 <Badge className="bg-secondary text-secondary-foreground shadow-md">

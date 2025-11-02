@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
 import heroImage1 from "@/assets/saree-hero-1.jpg";
 import heroImage2 from "@/assets/saree-hero-2.jpg";
 import heroImage3 from "@/assets/saree-hero-3.jpg";
@@ -61,6 +62,11 @@ export default function Home() {
         <section className="relative">
           <Carousel
             opts={{ loop: true }}
+            plugins={[
+              Autoplay({
+                delay: 3000,
+              }),
+            ]}
             className="w-full"
           >
             <CarouselContent>

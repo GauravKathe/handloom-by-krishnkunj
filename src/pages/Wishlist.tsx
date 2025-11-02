@@ -1,0 +1,81 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
+import { ProductCard } from "@/components/ProductCard";
+import { Loader2 } from "lucide-react";
+
+export default function Wishlist() {
+  const navigate = useNavigate();
+  const [wishlistItems, setWishlistItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    checkUser();
+  }, []);
+
+  const checkUser = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      navigate("/auth");
+      return;
+    }
+    setUser(session.user);
+    loadWishlist(session.user.id);
+  };
+
+  const loadWishlist = async (userId: string) => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("wishlist")
+      .select("*, products(*, categories(name))")
+      .eq("user_id", userId);
+
+    setWishlistItems(data || []);
+    setLoading(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Navbar />
+
+      <main className="flex-1 container mx-auto px-4 py-8">
+        <h1 className="text-3xl md:text-4xl font-bold text-primary mb-8">My Wishlist</h1>
+
+        {wishlistItems.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {wishlistItems.map((item) => (
+              <ProductCard key={item.id} product={item.products} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-16">
+            <p className="text-muted-foreground text-lg mb-6">Your wishlist is empty</p>
+            <button
+              onClick={() => navigate("/shop")}
+              className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              Continue Shopping
+            </button>
+          </div>
+        )}
+      </main>
+
+      <Footer />
+    </div>
+  );
+}

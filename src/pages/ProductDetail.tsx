@@ -73,26 +73,109 @@ export default function ProductDetail() {
       return;
     }
 
-    const { error } = await supabase
+    // Check if item already exists in cart
+    const { data: existingItem } = await supabase
       .from("cart_items")
-      .upsert({
-        user_id: user.id,
-        product_id: id,
-        quantity: 1,
-        selected_add_ons: selectedAddOns,
-      });
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("product_id", id)
+      .single();
 
-    if (error) {
+    if (existingItem) {
+      // Update quantity
+      const { error } = await supabase
+        .from("cart_items")
+        .update({
+          quantity: existingItem.quantity + 1,
+          selected_add_ons: selectedAddOns,
+        })
+        .eq("id", existingItem.id);
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Updated cart!",
+          description: "Item quantity has been updated",
+        });
+      }
+    } else {
+      // Insert new item
+      const { error } = await supabase
+        .from("cart_items")
+        .insert({
+          user_id: user.id,
+          product_id: id,
+          quantity: 1,
+          selected_add_ons: selectedAddOns,
+        });
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Added to cart!",
+          description: "Item has been added to your cart",
+        });
+      }
+    }
+  };
+
+  const handleWishlist = async () => {
+    if (!user) {
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Login required",
+        description: "Please login to add items to wishlist",
         variant: "destructive",
       });
+      navigate("/auth");
+      return;
+    }
+
+    // Check if already in wishlist
+    const { data: existing } = await supabase
+      .from("wishlist")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("product_id", id)
+      .single();
+
+    if (existing) {
+      // Remove from wishlist
+      const { error } = await supabase
+        .from("wishlist")
+        .delete()
+        .eq("id", existing.id);
+
+      if (!error) {
+        toast({
+          title: "Removed from wishlist",
+          description: "Item has been removed from your wishlist",
+        });
+      }
     } else {
-      toast({
-        title: "Added to cart!",
-        description: "Item has been added to your cart",
-      });
+      // Add to wishlist
+      const { error } = await supabase
+        .from("wishlist")
+        .insert({
+          user_id: user.id,
+          product_id: id,
+        });
+
+      if (!error) {
+        toast({
+          title: "Added to wishlist!",
+          description: "Item has been added to your wishlist",
+        });
+      }
     }
   };
 
@@ -235,7 +318,7 @@ export default function ProductDetail() {
                 <ShoppingCart className="mr-2 h-5 w-5" />
                 Add to Cart
               </Button>
-              <Button size="lg" variant="outline">
+              <Button size="lg" variant="outline" onClick={handleWishlist}>
                 <Heart className="mr-2 h-5 w-5" />
                 Wishlist
               </Button>
