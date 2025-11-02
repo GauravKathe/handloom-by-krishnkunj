@@ -37,10 +37,19 @@ export default function Cart() {
 
   const loadCart = async (userId: string) => {
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("cart_items")
-      .select("*, products(*), add_ons:selected_add_ons(*)")
+      .select("*, products(*)")
       .eq("user_id", userId);
+
+    if (error) {
+      console.error("Error loading cart:", error);
+      toast({
+        title: "Error loading cart",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
 
     setCartItems(data || []);
     setLoading(false);

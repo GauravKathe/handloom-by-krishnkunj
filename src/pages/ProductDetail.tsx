@@ -74,12 +74,22 @@ export default function ProductDetail() {
     }
 
     // Check if item already exists in cart
-    const { data: existingItem } = await supabase
+    const { data: existingItem, error: fetchError } = await supabase
       .from("cart_items")
       .select("*")
       .eq("user_id", user.id)
       .eq("product_id", id)
-      .single();
+      .maybeSingle();
+
+    if (fetchError) {
+      console.error("Error checking cart:", fetchError);
+      toast({
+        title: "Error",
+        description: fetchError.message,
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (existingItem) {
       // Update quantity
@@ -92,6 +102,7 @@ export default function ProductDetail() {
         .eq("id", existingItem.id);
 
       if (error) {
+        console.error("Error updating cart:", error);
         toast({
           title: "Error",
           description: error.message,
@@ -115,6 +126,7 @@ export default function ProductDetail() {
         });
 
       if (error) {
+        console.error("Error adding to cart:", error);
         toast({
           title: "Error",
           description: error.message,
@@ -141,12 +153,22 @@ export default function ProductDetail() {
     }
 
     // Check if already in wishlist
-    const { data: existing } = await supabase
+    const { data: existing, error: fetchError } = await supabase
       .from("wishlist")
       .select("*")
       .eq("user_id", user.id)
       .eq("product_id", id)
-      .single();
+      .maybeSingle();
+
+    if (fetchError) {
+      console.error("Error checking wishlist:", fetchError);
+      toast({
+        title: "Error",
+        description: fetchError.message,
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (existing) {
       // Remove from wishlist
@@ -155,7 +177,14 @@ export default function ProductDetail() {
         .delete()
         .eq("id", existing.id);
 
-      if (!error) {
+      if (error) {
+        console.error("Error removing from wishlist:", error);
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
         toast({
           title: "Removed from wishlist",
           description: "Item has been removed from your wishlist",
@@ -170,7 +199,14 @@ export default function ProductDetail() {
           product_id: id,
         });
 
-      if (!error) {
+      if (error) {
+        console.error("Error adding to wishlist:", error);
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
         toast({
           title: "Added to wishlist!",
           description: "Item has been added to your wishlist",

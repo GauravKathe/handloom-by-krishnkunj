@@ -5,9 +5,11 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ProductCard } from "@/components/ProductCard";
 import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Wishlist() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [wishlistItems, setWishlistItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -28,10 +30,19 @@ export default function Wishlist() {
 
   const loadWishlist = async (userId: string) => {
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("wishlist")
       .select("*, products(*, categories(name))")
       .eq("user_id", userId);
+
+    if (error) {
+      console.error("Error loading wishlist:", error);
+      toast({
+        title: "Error loading wishlist",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
 
     setWishlistItems(data || []);
     setLoading(false);
