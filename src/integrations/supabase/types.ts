@@ -97,6 +97,45 @@ export type Database = {
         }
         Relationships: []
       }
+      coupons: {
+        Row: {
+          code: string
+          created_at: string
+          current_usage_count: number
+          discount_percentage: number
+          expiry_date: string
+          id: string
+          max_usage_limit: number
+          minimum_purchase_amount: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          current_usage_count?: number
+          discount_percentage: number
+          expiry_date: string
+          id?: string
+          max_usage_limit?: number
+          minimum_purchase_amount?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          current_usage_count?: number
+          discount_percentage?: number
+          expiry_date?: string
+          id?: string
+          max_usage_limit?: number
+          minimum_purchase_amount?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string
@@ -144,7 +183,9 @@ export type Database = {
       }
       orders: {
         Row: {
+          coupon_code: string | null
           created_at: string
+          discount_amount: number | null
           id: string
           shipping_address: Json
           status: string
@@ -153,7 +194,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          coupon_code?: string | null
           created_at?: string
+          discount_amount?: number | null
           id?: string
           shipping_address: Json
           status?: string
@@ -162,7 +205,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          coupon_code?: string | null
           created_at?: string
+          discount_amount?: number | null
           id?: string
           shipping_address?: Json
           status?: string
@@ -304,6 +349,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      site_content: {
+        Row: {
+          content: Json
+          created_at: string
+          id: string
+          section: string
+          updated_at: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          id?: string
+          section: string
+          updated_at?: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          id?: string
+          section?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {

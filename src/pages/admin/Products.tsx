@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Search, Edit, Trash2, Package } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Package, Upload, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,7 @@ export default function AdminProducts() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -93,6 +94,86 @@ export default function AdminProducts() {
       images: product.images || [],
     });
     setDialogOpen(true);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    // Validate number of images
+    if (formData.images.length + files.length > 4) {
+      toast({
+        title: "Too many images",
+        description: "Maximum 4 images allowed per product",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingImage(true);
+
+    try {
+      const uploadedUrls: string[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+
+        // Validate file type
+        if (!["image/jpeg", "image/jpg", "image/png"].includes(file.type)) {
+          toast({
+            title: "Invalid file type",
+            description: `File ${file.name} is not a valid image (JPG, JPEG, or PNG)`,
+            variant: "destructive",
+          });
+          continue;
+        }
+
+        // Validate file size (5MB)
+        if (file.size > 5242880) {
+          toast({
+            title: "File too large",
+            description: `File ${file.name} must be less than 5MB`,
+            variant: "destructive",
+          });
+          continue;
+        }
+
+        const fileExt = file.name.split(".").pop();
+        const fileName = `product-${Date.now()}-${i}.${fileExt}`;
+
+        const { data, error } = await supabase.storage
+          .from("product-images")
+          .upload(fileName, file);
+
+        if (error) throw error;
+
+        const { data: urlData } = supabase.storage
+          .from("product-images")
+          .getPublicUrl(data.path);
+
+        uploadedUrls.push(urlData.publicUrl);
+      }
+
+      setFormData({
+        ...formData,
+        images: [...formData.images, ...uploadedUrls],
+      });
+
+      toast({ title: "Images uploaded successfully" });
+    } catch (error: any) {
+      toast({
+        title: "Error uploading images",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    const newImages = formData.images.filter((_, i) => i !== index);
+    setFormData({ ...formData, images: newImages });
   };
 
   const handleDelete = async (id: string) => {
@@ -214,6 +295,55 @@ export default function AdminProducts() {
                   />
                 </div>
               </div>
+              
+              {/* Image Upload Section */}
+              <div className="space-y-3">
+                <Label>Product Images (Max 4)</Label>
+                {formData.images.length > 0 && (
+                  <div className="grid grid-cols-2 gap-3">
+                    {formData.images.map((img, idx) => (
+                      <div key={idx} className="relative group">
+                        <img
+                          src={img}
+                          alt={`Product ${idx + 1}`}
+                          className="w-full h-32 object-cover rounded-lg border"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100"
+                          onClick={() => removeImage(idx)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {formData.images.length < 4 && (
+                  <Label htmlFor="product-images" className="cursor-pointer">
+                    <div className="flex items-center gap-2 p-4 border-2 border-dashed rounded-lg hover:bg-accent transition-colors">
+                      <Upload className="h-5 w-5" />
+                      <span>{uploadingImage ? "Uploading..." : "Upload Images"}</span>
+                      <span className="text-xs text-muted-foreground">
+                        ({formData.images.length}/4)
+                      </span>
+                    </div>
+                    <Input
+                      id="product-images"
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png"
+                      multiple
+                      className="hidden"
+                      onChange={handleImageUpload}
+                      disabled={uploadingImage}
+                    />
+                  </Label>
+                )}
+              </div>
+
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="available">Available for Sale</Label>

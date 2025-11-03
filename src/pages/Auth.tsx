@@ -47,12 +47,27 @@ export default function Auth() {
   });
 
   useEffect(() => {
-    // Check if user is already logged in
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Check if user is already logged in and redirect appropriately
+    const checkAuthAndRedirect = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate("/");
+        // Check if user is admin
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .eq("role", "admin")
+          .single();
+        
+        if (roleData) {
+          navigate("/admin");
+        } else {
+          navigate("/");
+        }
       }
-    });
+    };
+    
+    checkAuthAndRedirect();
   }, [navigate]);
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -124,7 +139,24 @@ export default function Auth() {
         title: "Welcome back!",
       });
 
-      navigate("/");
+      // Check if user is admin and redirect accordingly
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .eq("role", "admin")
+          .single();
+        
+        if (roleData) {
+          navigate("/admin");
+        } else {
+          navigate("/");
+        }
+      } else {
+        navigate("/");
+      }
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         toast({
