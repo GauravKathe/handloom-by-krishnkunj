@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { ShoppingCart, User, Search, Heart, Menu, LogOut } from "lucide-react";
+import { ShoppingCart, User, Search, Menu, LogOut } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useState, useEffect } from "react";
@@ -7,12 +7,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import logo from "@/assets/logo.png";
 
 export const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [user, setUser] = useState<any>(null);
   const [cartCount, setCartCount] = useState(0);
-  const [wishlistCount, setWishlistCount] = useState(0);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -31,14 +31,13 @@ export const Navbar = () => {
         loadCounts(session.user.id);
       } else {
         setCartCount(0);
-        setWishlistCount(0);
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // Real-time updates for cart and wishlist
+  // Real-time updates for cart
   useEffect(() => {
     if (!user) return;
 
@@ -56,32 +55,14 @@ export const Navbar = () => {
       )
       .subscribe();
 
-    const wishlistChannel = supabase
-      .channel('wishlist-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'wishlist',
-          filter: `user_id=eq.${user.id}`
-        },
-        () => loadCounts(user.id)
-      )
-      .subscribe();
-
     // Also listen for custom events as backup
     const handleCartUpdate = () => loadCounts(user.id);
-    const handleWishlistUpdate = () => loadCounts(user.id);
 
     window.addEventListener('cartUpdated', handleCartUpdate);
-    window.addEventListener('wishlistUpdated', handleWishlistUpdate);
 
     return () => {
       supabase.removeChannel(cartChannel);
-      supabase.removeChannel(wishlistChannel);
       window.removeEventListener('cartUpdated', handleCartUpdate);
-      window.removeEventListener('wishlistUpdated', handleWishlistUpdate);
     };
   }, [user]);
 
@@ -98,18 +79,6 @@ export const Navbar = () => {
       } else {
         const totalCartItems = cartData?.reduce((sum, item) => sum + item.quantity, 0) || 0;
         setCartCount(totalCartItems);
-      }
-
-      // Load wishlist count
-      const { count, error: wishlistError } = await supabase
-        .from("wishlist")
-        .select("*", { count: 'exact', head: true })
-        .eq("user_id", userId);
-      
-      if (wishlistError) {
-        console.error("Error loading wishlist count:", wishlistError);
-      } else {
-        setWishlistCount(count || 0);
       }
     } catch (error) {
       console.error("Error loading counts:", error);
@@ -156,10 +125,8 @@ export const Navbar = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16 md:h-20 gap-2 md:gap-4">
           {/* Logo */}
-          <Link to="/" className="flex-shrink-0">
-            <h1 className="text-lg md:text-2xl lg:text-3xl font-bold text-primary whitespace-nowrap">
-              Handloom by Krishnkunj
-            </h1>
+          <Link to="/" className="flex-shrink-0 flex items-center gap-2">
+            <img src={logo} alt="Handloom by Krishnkunj" className="h-10 md:h-12 w-auto" />
           </Link>
 
           {/* Desktop Navigation */}
@@ -183,17 +150,7 @@ export const Navbar = () => {
               </div>
             </form>
 
-            {/* Icons */}
-            <Button variant="ghost" size="icon" asChild className="hidden sm:flex relative">
-              <Link to="/wishlist">
-                <Heart className="h-5 w-5" />
-                {wishlistCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
-                    {wishlistCount}
-                  </span>
-                )}
-              </Link>
-            </Button>
+            {/* Cart Icon */}
             <Button variant="ghost" size="icon" asChild className="relative">
               <Link to="/cart">
                 <ShoppingCart className="h-5 w-5" />
@@ -216,12 +173,6 @@ export const Navbar = () => {
                     <Link to="/profile" className="cursor-pointer">
                       <User className="mr-2 h-4 w-4" />
                       My Profile
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/wishlist" className="cursor-pointer">
-                      <Heart className="mr-2 h-4 w-4" />
-                      Wishlist
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
@@ -269,12 +220,6 @@ export const Navbar = () => {
                         <Button variant="outline" className="w-full justify-start">
                           <User className="mr-2 h-4 w-4" />
                           My Profile
-                        </Button>
-                      </Link>
-                      <Link to="/wishlist">
-                        <Button variant="outline" className="w-full justify-start">
-                          <Heart className="mr-2 h-4 w-4" />
-                          Wishlist
                         </Button>
                       </Link>
                       <Button onClick={handleLogout} variant="destructive" className="w-full">

@@ -9,7 +9,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { ShoppingCart, Heart } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -145,81 +145,6 @@ export default function ProductDetail() {
     }
   };
 
-  const handleWishlist = async () => {
-    if (!user) {
-      toast({
-        title: "Login required",
-        description: "Please login to add items to wishlist",
-        variant: "destructive",
-      });
-      navigate("/auth");
-      return;
-    }
-
-    // Check if already in wishlist
-    const { data: existing, error: fetchError } = await supabase
-      .from("wishlist")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("product_id", id)
-      .maybeSingle();
-
-    if (fetchError) {
-      console.error("Error checking wishlist:", fetchError);
-      toast({
-        title: "Error",
-        description: fetchError.message,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (existing) {
-      // Remove from wishlist
-      const { error } = await supabase
-        .from("wishlist")
-        .delete()
-        .eq("id", existing.id);
-
-      if (error) {
-        console.error("Error removing from wishlist:", error);
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Removed from wishlist",
-          description: "Item has been removed from your wishlist",
-        });
-        window.dispatchEvent(new Event('wishlistUpdated'));
-      }
-    } else {
-      // Add to wishlist
-      const { error } = await supabase
-        .from("wishlist")
-        .insert({
-          user_id: user.id,
-          product_id: id,
-        });
-
-      if (error) {
-        console.error("Error adding to wishlist:", error);
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Added to wishlist!",
-          description: "Item has been added to your wishlist",
-        });
-        window.dispatchEvent(new Event('wishlistUpdated'));
-      }
-    }
-  };
 
   if (!product) {
     return (
@@ -350,21 +275,15 @@ export default function ProductDetail() {
             )}
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button
-                size="lg"
-                className="flex-1"
-                onClick={handleAddToCart}
-                disabled={!product.available}
-              >
-                <ShoppingCart className="mr-2 h-5 w-5" />
-                Add to Cart
-              </Button>
-              <Button size="lg" variant="outline" onClick={handleWishlist}>
-                <Heart className="mr-2 h-5 w-5" />
-                Wishlist
-              </Button>
-            </div>
+            <Button
+              size="lg"
+              className="w-full"
+              onClick={handleAddToCart}
+              disabled={!product.available}
+            >
+              <ShoppingCart className="mr-2 h-5 w-5" />
+              Add to Cart
+            </Button>
           </div>
         </div>
 
