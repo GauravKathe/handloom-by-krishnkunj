@@ -18,6 +18,21 @@ export default function Wishlist() {
     checkUser();
   }, []);
 
+  // Reload wishlist when items are updated
+  useEffect(() => {
+    const handleWishlistUpdate = () => {
+      if (user) {
+        loadWishlist(user.id);
+      }
+    };
+
+    window.addEventListener('wishlistUpdated', handleWishlistUpdate);
+
+    return () => {
+      window.removeEventListener('wishlistUpdated', handleWishlistUpdate);
+    };
+  }, [user]);
+
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) {
@@ -30,22 +45,42 @@ export default function Wishlist() {
 
   const loadWishlist = async (userId: string) => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("wishlist")
-      .select("*, products(*, categories(name))")
-      .eq("user_id", userId);
+    
+    try {
+      // Fetch wishlist items with products
+      const { data: wishlistData, error: wishlistError } = await supabase
+        .from("wishlist")
+        .select(`
+          id,
+          product_id,
+          created_at,
+          products (
+            id,
+            name,
+            description,
+            price,
+            images,
+            category_id,
+            categories (
+              name
+            )
+          )
+        `)
+        .eq("user_id", userId);
 
-    if (error) {
+      if (wishlistError) throw wishlistError;
+
+      setWishlistItems(wishlistData || []);
+    } catch (error: any) {
       console.error("Error loading wishlist:", error);
       toast({
         title: "Error loading wishlist",
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
-
-    setWishlistItems(data || []);
-    setLoading(false);
   };
 
   if (loading) {

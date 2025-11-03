@@ -70,29 +70,50 @@ export const Navbar = () => {
       )
       .subscribe();
 
+    // Also listen for custom events as backup
+    const handleCartUpdate = () => loadCounts(user.id);
+    const handleWishlistUpdate = () => loadCounts(user.id);
+
+    window.addEventListener('cartUpdated', handleCartUpdate);
+    window.addEventListener('wishlistUpdated', handleWishlistUpdate);
+
     return () => {
       supabase.removeChannel(cartChannel);
       supabase.removeChannel(wishlistChannel);
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+      window.removeEventListener('wishlistUpdated', handleWishlistUpdate);
     };
   }, [user]);
 
   const loadCounts = async (userId: string) => {
-    // Load cart count
-    const { data: cartData } = await supabase
-      .from("cart_items")
-      .select("quantity")
-      .eq("user_id", userId);
-    
-    const totalCartItems = cartData?.reduce((sum, item) => sum + item.quantity, 0) || 0;
-    setCartCount(totalCartItems);
+    try {
+      // Load cart count (sum of quantities)
+      const { data: cartData, error: cartError } = await supabase
+        .from("cart_items")
+        .select("quantity")
+        .eq("user_id", userId);
+      
+      if (cartError) {
+        console.error("Error loading cart count:", cartError);
+      } else {
+        const totalCartItems = cartData?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+        setCartCount(totalCartItems);
+      }
 
-    // Load wishlist count
-    const { data: wishlistData, count } = await supabase
-      .from("wishlist")
-      .select("*", { count: 'exact', head: true })
-      .eq("user_id", userId);
-    
-    setWishlistCount(count || 0);
+      // Load wishlist count
+      const { count, error: wishlistError } = await supabase
+        .from("wishlist")
+        .select("*", { count: 'exact', head: true })
+        .eq("user_id", userId);
+      
+      if (wishlistError) {
+        console.error("Error loading wishlist count:", wishlistError);
+      } else {
+        setWishlistCount(count || 0);
+      }
+    } catch (error) {
+      console.error("Error loading counts:", error);
+    }
   };
 
   const handleLogout = async () => {

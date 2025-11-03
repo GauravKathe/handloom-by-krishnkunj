@@ -20,6 +20,21 @@ export default function Cart() {
     checkUser();
   }, []);
 
+  // Reload cart when items are updated
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      if (user) {
+        loadCart(user.id);
+      }
+    };
+
+    window.addEventListener('cartUpdated', handleCartUpdate);
+
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+    };
+  }, [user]);
+
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
@@ -37,22 +52,40 @@ export default function Cart() {
 
   const loadCart = async (userId: string) => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("cart_items")
-      .select("*, products(*), add_ons!cart_items_selected_add_ons_fkey(*)")
-      .eq("user_id", userId);
+    
+    try {
+      // Fetch cart items with products
+      const { data: cartData, error: cartError } = await supabase
+        .from("cart_items")
+        .select("*, products(*)")
+        .eq("user_id", userId);
 
-    if (error) {
+      if (cartError) throw cartError;
+
+      // Fetch all add-ons
+      const { data: addOnsData, error: addOnsError } = await supabase
+        .from("add_ons")
+        .select("*");
+
+      if (addOnsError) throw addOnsError;
+
+      // Combine data
+      const itemsWithAddOns = (cartData || []).map((item: any) => ({
+        ...item,
+        add_ons: addOnsData || []
+      }));
+
+      setCartItems(itemsWithAddOns);
+    } catch (error: any) {
       console.error("Error loading cart:", error);
       toast({
         title: "Error loading cart",
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
-
-    setCartItems(data || []);
-    setLoading(false);
   };
 
   const updateQuantity = async (itemId: string, newQuantity: number) => {
@@ -64,6 +97,7 @@ export default function Cart() {
       .eq("id", itemId);
 
     if (!error) {
+      window.dispatchEvent(new Event('cartUpdated'));
       loadCart(user.id);
     }
   };
@@ -76,6 +110,7 @@ export default function Cart() {
 
     if (!error) {
       toast({ title: "Item removed from cart" });
+      window.dispatchEvent(new Event('cartUpdated'));
       loadCart(user.id);
     }
   };
