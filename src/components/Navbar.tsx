@@ -11,21 +11,89 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 export const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [user, setUser] = useState<any>(null);
+  const [cartCount, setCartCount] = useState(0);
+  const [wishlistCount, setWishlistCount] = useState(0);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Check auth state
+  // Check auth state and load counts
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      if (session?.user) {
+        loadCounts(session.user.id);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) {
+        loadCounts(session.user.id);
+      } else {
+        setCartCount(0);
+        setWishlistCount(0);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Real-time updates for cart and wishlist
+  useEffect(() => {
+    if (!user) return;
+
+    const cartChannel = supabase
+      .channel('cart-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'cart_items',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => loadCounts(user.id)
+      )
+      .subscribe();
+
+    const wishlistChannel = supabase
+      .channel('wishlist-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'wishlist',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => loadCounts(user.id)
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(cartChannel);
+      supabase.removeChannel(wishlistChannel);
+    };
+  }, [user]);
+
+  const loadCounts = async (userId: string) => {
+    // Load cart count
+    const { data: cartData } = await supabase
+      .from("cart_items")
+      .select("quantity")
+      .eq("user_id", userId);
+    
+    const totalCartItems = cartData?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+    setCartCount(totalCartItems);
+
+    // Load wishlist count
+    const { data: wishlistData, count } = await supabase
+      .from("wishlist")
+      .select("*", { count: 'exact', head: true })
+      .eq("user_id", userId);
+    
+    setWishlistCount(count || 0);
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -48,13 +116,7 @@ export const Navbar = () => {
         Home
       </Link>
       <Link to="/shop" className="text-sm font-medium hover:text-primary transition-colors">
-        Shop Sarees
-      </Link>
-      <Link to="/new-arrivals" className="text-sm font-medium hover:text-primary transition-colors">
-        New Arrivals
-      </Link>
-      <Link to="/best-sellers" className="text-sm font-medium hover:text-primary transition-colors">
-        Best Sellers
+        Shop Saree
       </Link>
       <Link to="/about" className="text-sm font-medium hover:text-primary transition-colors">
         Our Story
@@ -101,14 +163,24 @@ export const Navbar = () => {
             </form>
 
             {/* Icons */}
-            <Button variant="ghost" size="icon" asChild className="hidden sm:flex">
+            <Button variant="ghost" size="icon" asChild className="hidden sm:flex relative">
               <Link to="/wishlist">
                 <Heart className="h-5 w-5" />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                    {wishlistCount}
+                  </span>
+                )}
               </Link>
             </Button>
-            <Button variant="ghost" size="icon" asChild>
+            <Button variant="ghost" size="icon" asChild className="relative">
               <Link to="/cart">
                 <ShoppingCart className="h-5 w-5" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                    {cartCount}
+                  </span>
+                )}
               </Link>
             </Button>
             {user ? (

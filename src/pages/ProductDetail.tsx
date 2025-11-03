@@ -111,8 +111,10 @@ export default function ProductDetail() {
       } else {
         toast({
           title: "Updated cart!",
-          description: "Item quantity has been updated",
+          description: "Item quantity has been updated in your cart",
         });
+        // Trigger a custom event for real-time update
+        window.dispatchEvent(new Event('cartUpdated'));
       }
     } else {
       // Insert new item
@@ -137,6 +139,8 @@ export default function ProductDetail() {
           title: "Added to cart!",
           description: "Item has been added to your cart",
         });
+        // Trigger a custom event for real-time update
+        window.dispatchEvent(new Event('cartUpdated'));
       }
     }
   };
@@ -189,6 +193,7 @@ export default function ProductDetail() {
           title: "Removed from wishlist",
           description: "Item has been removed from your wishlist",
         });
+        window.dispatchEvent(new Event('wishlistUpdated'));
       }
     } else {
       // Add to wishlist
@@ -211,6 +216,7 @@ export default function ProductDetail() {
           title: "Added to wishlist!",
           description: "Item has been added to your wishlist",
         });
+        window.dispatchEvent(new Event('wishlistUpdated'));
       }
     }
   };

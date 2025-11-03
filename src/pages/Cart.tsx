@@ -39,7 +39,7 @@ export default function Cart() {
     setLoading(true);
     const { data, error } = await supabase
       .from("cart_items")
-      .select("*, products(*)")
+      .select("*, products(*), add_ons!cart_items_selected_add_ons_fkey(*)")
       .eq("user_id", userId);
 
     if (error) {
@@ -80,11 +80,17 @@ export default function Cart() {
     }
   };
 
-  const calculateTotal = () => {
-    return cartItems.reduce((total, item) => {
-      const productPrice = Number(item.products.price) * item.quantity;
-      return total + productPrice;
+  const calculateItemTotal = (item: any) => {
+    const basePrice = Number(item.products.price);
+    const addOnsPrice = (item.selected_add_ons || []).reduce((sum: number, addonId: string) => {
+      const addon = item.add_ons?.find((a: any) => a.id === addonId);
+      return sum + (addon ? Number(addon.price) : 0);
     }, 0);
+    return (basePrice + addOnsPrice) * item.quantity;
+  };
+
+  const calculateTotal = () => {
+    return cartItems.reduce((total, item) => total + calculateItemTotal(item), 0);
   };
 
   if (loading) {
@@ -140,9 +146,25 @@ export default function Cart() {
                         </Button>
                       </div>
 
-                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                      <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
                         {item.products.description}
                       </p>
+
+                      {/* Add-ons Display */}
+                      {item.selected_add_ons && item.selected_add_ons.length > 0 && (
+                        <div className="mb-4 p-3 bg-secondary/10 rounded-md">
+                          <p className="text-xs font-semibold mb-2">Selected Add-ons:</p>
+                          {item.selected_add_ons.map((addonId: string) => {
+                            const addon = item.add_ons?.find((a: any) => a.id === addonId);
+                            return addon ? (
+                              <div key={addon.id} className="flex justify-between text-xs mb-1">
+                                <span>{addon.name}</span>
+                                <span className="text-primary font-medium">+₹{Number(addon.price).toLocaleString()}</span>
+                              </div>
+                            ) : null;
+                          })}
+                        </div>
+                      )}
 
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div className="flex items-center space-x-2 border rounded-lg p-1 w-fit">
@@ -165,8 +187,13 @@ export default function Cart() {
                           </Button>
                         </div>
 
-                        <div className="text-xl font-bold text-primary">
-                          ₹{(Number(item.products.price) * item.quantity).toLocaleString()}
+                        <div className="text-right">
+                          <div className="text-sm text-muted-foreground mb-1">
+                            Base: ₹{(Number(item.products.price) * item.quantity).toLocaleString()}
+                          </div>
+                          <div className="text-xl font-bold text-primary">
+                            Total: ₹{calculateItemTotal(item).toLocaleString()}
+                          </div>
                         </div>
                       </div>
                     </div>
