@@ -10,10 +10,23 @@ import Autoplay from "embla-carousel-autoplay";
 import heroImage1 from "@/assets/saree-hero-1.jpg";
 import heroImage2 from "@/assets/saree-hero-2.jpg";
 import heroImage3 from "@/assets/saree-hero-3.jpg";
+import categoryBanarasi from "@/assets/category-banarasi.jpg";
+import categoryCotton from "@/assets/category-cotton.jpg";
+import categoryKanjivaram from "@/assets/category-kanjivaram.jpg";
+import categoryPaithani from "@/assets/category-paithani.jpg";
+import categorySilk from "@/assets/category-silk.jpg";
 
 export default function Home() {
   const [categories, setCategories] = useState<any[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
+
+  const categoryImages: Record<string, string> = {
+    "Banarasi Sarees": categoryBanarasi,
+    "Cotton Sarees": categoryCotton,
+    "Kanjivaram Sarees": categoryKanjivaram,
+    "Paithani Sarees": categoryPaithani,
+    "Silk Sarees": categorySilk,
+  };
 
   useEffect(() => {
     loadData();
@@ -123,7 +136,7 @@ export default function Home() {
                   <CardContent className="p-0">
                     <div className="aspect-square rounded-full overflow-hidden m-4 bg-gradient-to-br from-secondary/20 to-primary/20">
                       <img
-                        src={category.image_url || "/placeholder.svg"}
+                        src={categoryImages[category.name] || category.image_url || "/placeholder.svg"}
                         alt={category.name}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                       />
