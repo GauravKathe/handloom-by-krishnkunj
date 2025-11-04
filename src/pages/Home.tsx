@@ -121,10 +121,15 @@ export default function Home() {
         {/* Hero Carousel */}
         <section className="relative">
           <Carousel
-            opts={{ loop: true }}
+            opts={{ 
+              loop: true,
+              align: "start"
+            }}
             plugins={[
               Autoplay({
                 delay: 3000,
+                stopOnInteraction: false,
+                stopOnMouseEnter: true
               }),
             ]}
             className="w-full"

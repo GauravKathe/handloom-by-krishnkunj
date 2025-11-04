@@ -38,21 +38,35 @@ export default function AdminCustomers() {
 
   const loadCustomers = async () => {
     try {
-      const { data, error } = await supabase
+      // Load profiles
+      const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
-        .select(`
-          *,
-          orders(count)
-        `)
+        .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error loading customers:", error);
-        toast({ title: "Error loading customers", description: error.message, variant: "destructive" });
-      } else {
-        console.log("Loaded customers:", data);
-        setCustomers(data || []);
+      if (profilesError) {
+        console.error("Error loading customers:", profilesError);
+        toast({ title: "Error loading customers", description: profilesError.message, variant: "destructive" });
+        return;
       }
+
+      // Load order counts for each profile
+      const customersWithOrderCounts = await Promise.all(
+        (profilesData || []).map(async (profile) => {
+          const { count } = await supabase
+            .from("orders")
+            .select("*", { count: 'exact', head: true })
+            .eq("user_id", profile.id);
+          
+          return {
+            ...profile,
+            orders: [{ count: count || 0 }]
+          };
+        })
+      );
+
+      console.log("Loaded customers:", customersWithOrderCounts);
+      setCustomers(customersWithOrderCounts);
     } catch (error) {
       console.error("Exception loading customers:", error);
       toast({ title: "Error loading customers", variant: "destructive" });
