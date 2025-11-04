@@ -24,11 +24,11 @@ export default function AdminOrders() {
 
   const loadOrders = async () => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("orders")
         .select(`
           *,
-          profiles(full_name, email, mobile_number),
+          profiles(full_name, email, mobile_number, city, state),
           order_items(
             *,
             products(name, images, price)
@@ -36,8 +36,20 @@ export default function AdminOrders() {
         `)
         .order("created_at", { ascending: false });
 
+      if (error) {
+        console.error("Error loading orders:", error);
+        toast({ 
+          title: "Error loading orders", 
+          description: error.message,
+          variant: "destructive" 
+        });
+        return;
+      }
+
+      console.log("Loaded orders:", data);
       setOrders(data || []);
     } catch (error) {
+      console.error("Unexpected error:", error);
       toast({ title: "Error loading orders", variant: "destructive" });
     } finally {
       setLoading(false);
@@ -186,43 +198,51 @@ export default function AdminOrders() {
                 </tr>
               </thead>
               <tbody>
-                {filteredOrders.map((order) => (
-                  <tr key={order.id} className="border-b hover:bg-muted/50">
-                    <td className="p-2 font-mono text-sm">{order.id.slice(0, 8)}</td>
-                    <td className="p-2">
-                      <div>
-                        <div className="font-medium">{order.profiles?.full_name}</div>
-                        <div className="text-sm text-muted-foreground">{order.profiles?.email}</div>
-                      </div>
-                    </td>
-                    <td className="p-2">₹{Number(order.total_amount).toLocaleString()}</td>
-                    <td className="p-2">
-                      <Select
-                        value={order.status}
-                        onValueChange={(value) => updateOrderStatus(order.id, value)}
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="processing">Processing</SelectItem>
-                          <SelectItem value="shipped">Shipped</SelectItem>
-                          <SelectItem value="delivered">Delivered</SelectItem>
-                          <SelectItem value="cancelled">Cancelled</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </td>
-                    <td className="p-2">{new Date(order.created_at).toLocaleDateString()}</td>
-                    <td className="p-2">
-                      <div className="flex justify-end">
-                        <Button variant="ghost" size="icon" onClick={() => viewOrderDetails(order)}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </div>
+                {filteredOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                      No orders found
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredOrders.map((order) => (
+                    <tr key={order.id} className="border-b hover:bg-muted/50">
+                      <td className="p-2 font-mono text-sm">{order.id.slice(0, 8)}</td>
+                      <td className="p-2">
+                        <div>
+                          <div className="font-medium">{order.profiles?.full_name || 'Unknown'}</div>
+                          <div className="text-sm text-muted-foreground">{order.profiles?.email || 'N/A'}</div>
+                        </div>
+                      </td>
+                      <td className="p-2">₹{Number(order.total_amount).toLocaleString()}</td>
+                      <td className="p-2">
+                        <Select
+                          value={order.status}
+                          onValueChange={(value) => updateOrderStatus(order.id, value)}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="processing">Processing</SelectItem>
+                            <SelectItem value="shipped">Shipped</SelectItem>
+                            <SelectItem value="delivered">Delivered</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="p-2">{new Date(order.created_at).toLocaleDateString()}</td>
+                      <td className="p-2">
+                        <div className="flex justify-end">
+                          <Button variant="ghost" size="icon" onClick={() => viewOrderDetails(order)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -257,8 +277,14 @@ export default function AdminOrders() {
 
               <div>
                 <h3 className="font-semibold mb-2">Shipping Address</h3>
-                <div className="bg-muted p-3 rounded text-sm">
-                  {JSON.stringify(selectedOrder.shipping_address, null, 2)}
+                <div className="bg-muted p-3 rounded text-sm space-y-1">
+                  <p>{selectedOrder.shipping_address?.house}</p>
+                  <p>{selectedOrder.shipping_address?.street}</p>
+                  {selectedOrder.shipping_address?.landmark && (
+                    <p>Landmark: {selectedOrder.shipping_address.landmark}</p>
+                  )}
+                  <p>{selectedOrder.shipping_address?.city}, {selectedOrder.shipping_address?.state}</p>
+                  <p>Pincode: {selectedOrder.shipping_address?.pincode}</p>
                 </div>
               </div>
 
