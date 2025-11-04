@@ -142,8 +142,10 @@ export default function ContentManagement() {
 
     const { error } = await supabase
       .from("site_content")
-      .upsert({ section, content })
-      .eq("section", section);
+      .upsert(
+        { section, content },
+        { onConflict: 'section' }
+      );
 
     if (error) {
       toast({
