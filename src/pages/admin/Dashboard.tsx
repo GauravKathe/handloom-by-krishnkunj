@@ -19,6 +19,27 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     checkAdminAccess();
+
+    // Set up realtime listener for profiles table
+    const channel = supabase
+      .channel('profiles-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'profiles'
+        },
+        () => {
+          // Reload dashboard data when a new profile is created
+          loadDashboardData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const checkAdminAccess = async () => {

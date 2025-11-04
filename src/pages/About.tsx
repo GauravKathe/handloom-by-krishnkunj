@@ -1,9 +1,51 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import artisanImage from "@/assets/artisan-weaving.jpg";
 
 export default function About() {
+  const [content, setContent] = useState<any>(null);
+
+  useEffect(() => {
+    loadContent();
+
+    // Set up realtime listener for site_content changes
+    const channel = supabase
+      .channel('about-content-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'site_content',
+          filter: 'section=eq.about_us'
+        },
+        () => {
+          // Reload content when it changes
+          loadContent();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const loadContent = async () => {
+    const { data } = await supabase
+      .from("site_content")
+      .select("*")
+      .eq("section", "about_us")
+      .single();
+
+    if (data) {
+      setContent(data.content);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -20,10 +62,10 @@ export default function About() {
           <div className="absolute inset-0 flex items-center">
             <div className="container mx-auto px-4">
               <h1 className="text-4xl md:text-6xl font-bold text-background max-w-2xl drop-shadow-lg">
-                Our Story
+                {content?.title || "Our Story"}
               </h1>
               <p className="text-xl md:text-2xl text-background/90 mt-4 max-w-xl drop-shadow-md">
-                Where tradition meets soul, and every thread tells a story
+                {content?.subtitle || "Where tradition meets soul, and every thread tells a story"}
               </p>
             </div>
           </div>

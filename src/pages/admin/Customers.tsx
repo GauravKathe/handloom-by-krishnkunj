@@ -13,6 +13,27 @@ export default function AdminCustomers() {
 
   useEffect(() => {
     loadCustomers();
+
+    // Set up realtime listener for profiles table
+    const channel = supabase
+      .channel('customers-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'profiles'
+        },
+        () => {
+          // Reload customers when a new profile is created
+          loadCustomers();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadCustomers = async () => {

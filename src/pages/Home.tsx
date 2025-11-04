@@ -19,6 +19,7 @@ import categorySilk from "@/assets/category-silk.jpg";
 export default function Home() {
   const [categories, setCategories] = useState<any[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
+  const [heroContent, setHeroContent] = useState<any>(null);
 
   const categoryImages: Record<string, string> = {
     "Banarasi Sarees": categoryBanarasi,
@@ -30,6 +31,29 @@ export default function Home() {
 
   useEffect(() => {
     loadData();
+    loadHeroContent();
+
+    // Set up realtime listener for site_content changes
+    const channel = supabase
+      .channel('site-content-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'site_content',
+          filter: 'section=eq.homepage_hero'
+        },
+        () => {
+          // Reload hero content when it changes
+          loadHeroContent();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadData = async () => {
@@ -48,7 +72,19 @@ export default function Home() {
     setFeaturedProducts(productsData || []);
   };
 
-  const heroSlides = [
+  const loadHeroContent = async () => {
+    const { data } = await supabase
+      .from("site_content")
+      .select("*")
+      .eq("section", "homepage_hero")
+      .single();
+
+    if (data) {
+      setHeroContent(data.content);
+    }
+  };
+
+  const defaultHeroSlides = [
     {
       title: "Elegance Woven With Love",
       subtitle: "Discover the art of traditional handloom sarees",
@@ -65,6 +101,9 @@ export default function Home() {
       image: heroImage3,
     },
   ];
+
+  // Use hero content from CMS if available, otherwise use defaults
+  const heroSlides = heroContent?.slides || defaultHeroSlides;
 
   return (
     <div className="min-h-screen flex flex-col">

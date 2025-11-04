@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -19,11 +20,50 @@ const contactSchema = z.object({
 export default function Contact() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [content, setContent] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     message: "",
   });
+
+  useEffect(() => {
+    loadContent();
+
+    // Set up realtime listener for site_content changes
+    const channel = supabase
+      .channel('contact-content-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'site_content',
+          filter: 'section=eq.contact'
+        },
+        () => {
+          // Reload content when it changes
+          loadContent();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const loadContent = async () => {
+    const { data } = await supabase
+      .from("site_content")
+      .select("*")
+      .eq("section", "contact")
+      .single();
+
+    if (data) {
+      setContent(data.content);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,10 +108,10 @@ export default function Contact() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="text-3xl md:text-4xl font-bold text-primary mb-4">
-              Get in Touch
+              {content?.title || "Get in Touch"}
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+              {content?.description || "We'd love to hear from you. Send us a message and we'll respond as soon as possible."}
             </p>
           </div>
 
