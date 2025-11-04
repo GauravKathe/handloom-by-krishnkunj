@@ -33,9 +33,9 @@ export default function Home() {
     loadData();
     loadHeroContent();
 
-    // Set up realtime listener for site_content changes
+    // Set up realtime listeners for content and categories
     const channel = supabase
-      .channel('site-content-changes')
+      .channel('homepage-changes')
       .on(
         'postgres_changes',
         {
@@ -45,8 +45,18 @@ export default function Home() {
           filter: 'section=eq.homepage_hero'
         },
         () => {
-          // Reload hero content when it changes
           loadHeroContent();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'categories'
+        },
+        () => {
+          loadData();
         }
       )
       .subscribe();
@@ -79,31 +89,29 @@ export default function Home() {
       .eq("section", "homepage_hero")
       .single();
 
-    if (data) {
-      setHeroContent(data.content);
+    if (data?.content && typeof data.content === 'object' && 'bannerImages' in data.content) {
+      setHeroContent(data.content as { bannerImages: string[] });
     }
   };
 
   const defaultHeroSlides = [
-    {
-      title: "Elegance Woven With Love",
-      subtitle: "Discover the art of traditional handloom sarees",
-      image: heroImage1,
-    },
-    {
-      title: "Where Tradition Meets Soul",
-      subtitle: "Premium Paithani sarees crafted by master artisans",
-      image: heroImage2,
-    },
-    {
-      title: "Heritage in Every Thread",
-      subtitle: "Supporting women artisans across India",
-      image: heroImage3,
-    },
+    { image: heroImage1, title: "Elegance Woven With Love", subtitle: "Discover the art of traditional handloom sarees" },
+    { image: heroImage2, title: "Where Tradition Meets Soul", subtitle: "Premium Paithani sarees crafted by master artisans" },
+    { image: heroImage3, title: "Heritage in Every Thread", subtitle: "Supporting women artisans across India" },
   ];
 
-  // Use hero content from CMS if available, otherwise use defaults
-  const heroSlides = heroContent?.slides || defaultHeroSlides;
+  // Map banner images to slides format
+  const bannerImages = (heroContent && typeof heroContent === 'object' && 'bannerImages' in heroContent) 
+    ? (heroContent as { bannerImages: string[] }).bannerImages 
+    : [];
+    
+  const bannerSlides = bannerImages.map((img: string, idx: number) => ({
+    image: img,
+    title: defaultHeroSlides[idx]?.title || "Discover Beautiful Sarees",
+    subtitle: defaultHeroSlides[idx]?.subtitle || "Handcrafted with love and tradition",
+  }));
+
+  const heroSlides = bannerSlides.length > 0 ? bannerSlides : defaultHeroSlides;
 
   return (
     <div className="min-h-screen flex flex-col">

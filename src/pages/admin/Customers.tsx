@@ -20,12 +20,12 @@ export default function AdminCustomers() {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'profiles'
         },
         () => {
-          // Reload customers when a new profile is created
+          // Reload customers when profiles change
           loadCustomers();
         }
       )
@@ -38,7 +38,7 @@ export default function AdminCustomers() {
 
   const loadCustomers = async () => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .select(`
           *,
@@ -46,8 +46,15 @@ export default function AdminCustomers() {
         `)
         .order("created_at", { ascending: false });
 
-      setCustomers(data || []);
+      if (error) {
+        console.error("Error loading customers:", error);
+        toast({ title: "Error loading customers", description: error.message, variant: "destructive" });
+      } else {
+        console.log("Loaded customers:", data);
+        setCustomers(data || []);
+      }
     } catch (error) {
+      console.error("Exception loading customers:", error);
       toast({ title: "Error loading customers", variant: "destructive" });
     } finally {
       setLoading(false);

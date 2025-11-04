@@ -6,89 +6,88 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Eye } from "lucide-react";
-
-interface SiteContent {
-  section: string;
-  content: any;
-}
+import { Upload, Trash2, Plus } from "lucide-react";
 
 export default function ContentManagement() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState<boolean>(false);
+  const [uploadingCategory, setUploadingCategory] = useState<boolean>(false);
   const { toast } = useToast();
 
-  const [heroContent, setHeroContent] = useState({
-    title: "",
-    subtitle: "",
+  const [bannerImages, setBannerImages] = useState<string[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [newCategory, setNewCategory] = useState({
+    name: "",
     description: "",
-    bannerImages: [] as string[],
-  });
-
-  const [aboutContent, setAboutContent] = useState({
-    title: "",
-    content: "",
-  });
-
-  const [contactContent, setContactContent] = useState({
-    phone: "",
-    email: "",
-    address: "",
-    description: "",
+    image: null as File | null,
   });
 
   useEffect(() => {
     loadContent();
+    
+    // Set up realtime listener for categories
+    const channel = supabase
+      .channel('content-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'categories'
+        },
+        () => {
+          loadCategories();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadContent = async () => {
     setLoading(true);
-
-    const { data, error } = await supabase
-      .from("site_content")
-      .select("*")
-      .in("section", ["homepage_hero", "about_us", "contact"]);
-
-    if (error) {
-      toast({
-        title: "Error loading content",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else if (data) {
-      data.forEach((item) => {
-        if (item.section === "homepage_hero") {
-          setHeroContent(item.content as any);
-        } else if (item.section === "about_us") {
-          setAboutContent(item.content as any);
-        } else if (item.section === "contact") {
-          setContactContent(item.content as any);
-        }
-      });
-    }
-
+    await Promise.all([loadBanners(), loadCategories()]);
     setLoading(false);
   };
 
-  const handleImageUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-    section: string
-  ) => {
+  const loadBanners = async () => {
+    const { data } = await supabase
+      .from("site_content")
+      .select("*")
+      .eq("section", "homepage_hero")
+      .single();
+
+    if (data?.content && typeof data.content === 'object' && 'bannerImages' in data.content) {
+      const content = data.content as { bannerImages: string[] };
+      setBannerImages(content.bannerImages || []);
+    }
+  };
+
+  const loadCategories = async () => {
+    const { data } = await supabase
+      .from("categories")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    setCategories(data || []);
+  };
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    if (!["image/jpeg", "image/jpg", "image/png"].includes(file.type)) {
+    if (!["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type)) {
       toast({
         title: "Invalid file type",
-        description: "Please upload a JPG or PNG image",
+        description: "Please upload a JPG, PNG, or WEBP image",
         variant: "destructive",
       });
       return;
     }
 
-    // Validate file size (5MB)
     if (file.size > 5242880) {
       toast({
         title: "File too large",
@@ -98,10 +97,10 @@ export default function ContentManagement() {
       return;
     }
 
-    setUploadingImage(section);
+    setUploadingImage(true);
 
     const fileExt = file.name.split(".").pop();
-    const fileName = `${section}-${Date.now()}.${fileExt}`;
+    const fileName = `banner-${Date.now()}.${fileExt}`;
 
     const { data, error } = await supabase.storage
       .from("site-content")
@@ -113,7 +112,7 @@ export default function ContentManagement() {
         description: error.message,
         variant: "destructive",
       });
-      setUploadingImage(null);
+      setUploadingImage(false);
       return;
     }
 
@@ -121,43 +120,122 @@ export default function ContentManagement() {
       .from("site-content")
       .getPublicUrl(data.path);
 
-    if (section === "hero-banner") {
-      setHeroContent({
-        ...heroContent,
-        bannerImages: [...(heroContent.bannerImages || []), urlData.publicUrl],
-      });
-    }
+    const newBanners = [...bannerImages, urlData.publicUrl];
+    setBannerImages(newBanners);
 
-    setUploadingImage(null);
-    toast({ title: "Image uploaded successfully" });
+    await saveBanners(newBanners);
+    setUploadingImage(false);
   };
 
-  const removeBannerImage = (index: number) => {
-    const newImages = heroContent.bannerImages.filter((_, i) => i !== index);
-    setHeroContent({ ...heroContent, bannerImages: newImages });
+  const removeBannerImage = async (index: number) => {
+    const newBanners = bannerImages.filter((_, i) => i !== index);
+    setBannerImages(newBanners);
+    await saveBanners(newBanners);
   };
 
-  const saveContent = async (section: string, content: any) => {
-    setSaving(true);
-
+  const saveBanners = async (images: string[]) => {
     const { error } = await supabase
       .from("site_content")
       .upsert(
-        { section, content },
+        { 
+          section: "homepage_hero", 
+          content: { bannerImages: images }
+        },
         { onConflict: 'section' }
       );
 
     if (error) {
       toast({
-        title: "Error saving content",
+        title: "Error saving banners",
         description: error.message,
         variant: "destructive",
       });
     } else {
-      toast({ title: "Content saved successfully" });
+      toast({ title: "Banners updated successfully" });
+    }
+  };
+
+  const handleCategoryImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setNewCategory({ ...newCategory, image: file });
+    }
+  };
+
+  const addCategory = async () => {
+    if (!newCategory.name || !newCategory.image) {
+      toast({
+        title: "Missing information",
+        description: "Please provide category name and image",
+        variant: "destructive",
+      });
+      return;
     }
 
-    setSaving(false);
+    setUploadingCategory(true);
+
+    // Upload image
+    const fileExt = newCategory.image.name.split(".").pop();
+    const fileName = `category-${Date.now()}.${fileExt}`;
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("site-content")
+      .upload(fileName, newCategory.image);
+
+    if (uploadError) {
+      toast({
+        title: "Error uploading image",
+        description: uploadError.message,
+        variant: "destructive",
+      });
+      setUploadingCategory(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("site-content")
+      .getPublicUrl(uploadData.path);
+
+    // Create category
+    const { error: insertError } = await supabase
+      .from("categories")
+      .insert({
+        name: newCategory.name,
+        description: newCategory.description,
+        image_url: urlData.publicUrl,
+      });
+
+    if (insertError) {
+      toast({
+        title: "Error creating category",
+        description: insertError.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({ title: "Category created successfully" });
+      setNewCategory({ name: "", description: "", image: null });
+      loadCategories();
+    }
+
+    setUploadingCategory(false);
+  };
+
+  const deleteCategory = async (id: string) => {
+    const { error } = await supabase
+      .from("categories")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      toast({
+        title: "Error deleting category",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({ title: "Category deleted successfully" });
+      loadCategories();
+    }
   };
 
   if (loading) {
@@ -166,159 +244,141 @@ export default function ContentManagement() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Content Management</h1>
+      <div>
+        <h1 className="text-3xl font-bold">Content Management</h1>
+        <p className="text-muted-foreground">Manage homepage banners and product categories</p>
+      </div>
 
-      {/* Homepage Hero Section */}
+      {/* Homepage Banners */}
       <Card>
         <CardHeader>
-          <CardTitle>Homepage Hero Section</CardTitle>
+          <CardTitle>Homepage Banners</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="hero-title">Title</Label>
-            <Input
-              id="hero-title"
-              value={heroContent.title}
-              onChange={(e) => setHeroContent({ ...heroContent, title: e.target.value })}
-            />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {bannerImages.map((img, idx) => (
+              <div key={idx} className="relative group">
+                <img
+                  src={img}
+                  alt={`Banner ${idx + 1}`}
+                  className="w-full h-48 object-cover rounded-lg"
+                />
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => removeBannerImage(idx)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
           </div>
-          <div>
-            <Label htmlFor="hero-subtitle">Subtitle</Label>
-            <Input
-              id="hero-subtitle"
-              value={heroContent.subtitle}
-              onChange={(e) => setHeroContent({ ...heroContent, subtitle: e.target.value })}
-            />
+          
+          <div className="mt-4">
+            <Label htmlFor="banner-upload" className="cursor-pointer">
+              <div className="flex items-center justify-center gap-2 p-8 border-2 border-dashed rounded-lg hover:bg-accent transition-colors">
+                <Upload className="h-6 w-6" />
+                <span className="font-medium">
+                  {uploadingImage ? "Uploading..." : "Upload New Banner"}
+                </span>
+              </div>
+              <Input
+                id="banner-upload"
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                className="hidden"
+                onChange={handleBannerUpload}
+                disabled={uploadingImage}
+              />
+            </Label>
+            <p className="text-sm text-muted-foreground mt-2">
+              Upload banner images for the homepage carousel. Recommended size: 1920x600px
+            </p>
           </div>
-          <div>
-            <Label htmlFor="hero-description">Description</Label>
-            <Textarea
-              id="hero-description"
-              value={heroContent.description}
-              onChange={(e) => setHeroContent({ ...heroContent, description: e.target.value })}
-              rows={3}
-            />
+        </CardContent>
+      </Card>
+
+      {/* Categories Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Saree Categories</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Add New Category */}
+          <div className="p-4 border rounded-lg space-y-4">
+            <h3 className="font-semibold flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Add New Category
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="category-name">Category Name</Label>
+                <Input
+                  id="category-name"
+                  placeholder="e.g., Silk Sarees"
+                  value={newCategory.name}
+                  onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="category-description">Description (Optional)</Label>
+                <Input
+                  id="category-description"
+                  placeholder="Brief description"
+                  value={newCategory.description}
+                  onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="category-image">Category Image</Label>
+              <Input
+                id="category-image"
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                onChange={handleCategoryImageSelect}
+              />
+              {newCategory.image && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Selected: {newCategory.image.name}
+                </p>
+              )}
+            </div>
+            <Button onClick={addCategory} disabled={uploadingCategory}>
+              {uploadingCategory ? "Creating..." : "Create Category"}
+            </Button>
           </div>
+
+          {/* Existing Categories */}
           <div>
-            <Label>Banner Images</Label>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
-              {heroContent.bannerImages?.map((img, idx) => (
-                <div key={idx} className="relative group">
-                  <img
-                    src={img}
-                    alt={`Banner ${idx + 1}`}
-                    className="w-full h-32 object-cover rounded-lg"
-                  />
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100"
-                    onClick={() => removeBannerImage(idx)}
-                  >
-                    Remove
-                  </Button>
-                </div>
+            <h3 className="font-semibold mb-4">Existing Categories</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {categories.map((category) => (
+                <Card key={category.id}>
+                  <CardContent className="p-4">
+                    <img
+                      src={category.image_url || "/placeholder.svg"}
+                      alt={category.name}
+                      className="w-full h-32 object-cover rounded-lg mb-3"
+                    />
+                    <h4 className="font-semibold mb-1">{category.name}</h4>
+                    {category.description && (
+                      <p className="text-sm text-muted-foreground mb-3">{category.description}</p>
+                    )}
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => deleteCategory(category.id)}
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Delete
+                    </Button>
+                  </CardContent>
+                </Card>
               ))}
             </div>
-            <div className="mt-4">
-              <Label htmlFor="hero-banner" className="cursor-pointer">
-                <div className="flex items-center gap-2 p-4 border-2 border-dashed rounded-lg hover:bg-accent">
-                  <Upload className="h-5 w-5" />
-                  <span>{uploadingImage === "hero-banner" ? "Uploading..." : "Upload Banner Image"}</span>
-                </div>
-                <Input
-                  id="hero-banner"
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png"
-                  className="hidden"
-                  onChange={(e) => handleImageUpload(e, "hero-banner")}
-                  disabled={uploadingImage === "hero-banner"}
-                />
-              </Label>
-            </div>
           </div>
-          <Button onClick={() => saveContent("homepage_hero", heroContent)} disabled={saving}>
-            Save Homepage Content
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* About Us Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>About Us Page</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="about-title">Title</Label>
-            <Input
-              id="about-title"
-              value={aboutContent.title}
-              onChange={(e) => setAboutContent({ ...aboutContent, title: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label htmlFor="about-content">Content</Label>
-            <Textarea
-              id="about-content"
-              value={aboutContent.content}
-              onChange={(e) => setAboutContent({ ...aboutContent, content: e.target.value })}
-              rows={8}
-            />
-          </div>
-          <Button onClick={() => saveContent("about_us", aboutContent)} disabled={saving}>
-            Save About Content
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Contact Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Contact Page</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="contact-phone">Phone</Label>
-              <Input
-                id="contact-phone"
-                value={contactContent.phone}
-                onChange={(e) => setContactContent({ ...contactContent, phone: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="contact-email">Email</Label>
-              <Input
-                id="contact-email"
-                type="email"
-                value={contactContent.email}
-                onChange={(e) => setContactContent({ ...contactContent, email: e.target.value })}
-              />
-            </div>
-          </div>
-          <div>
-            <Label htmlFor="contact-address">Address</Label>
-            <Input
-              id="contact-address"
-              value={contactContent.address}
-              onChange={(e) => setContactContent({ ...contactContent, address: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label htmlFor="contact-description">Description</Label>
-            <Textarea
-              id="contact-description"
-              value={contactContent.description}
-              onChange={(e) =>
-                setContactContent({ ...contactContent, description: e.target.value })
-              }
-              rows={4}
-            />
-          </div>
-          <Button onClick={() => saveContent("contact", contactContent)} disabled={saving}>
-            Save Contact Content
-          </Button>
         </CardContent>
       </Card>
     </div>
