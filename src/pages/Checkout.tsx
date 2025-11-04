@@ -665,8 +665,18 @@ export default function Checkout() {
               <Card className="p-6">
                 <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
                   <CreditCard className="w-6 h-6 text-primary" />
-                  Payment Method
+                  Payment Method (Test Mode)
                 </h2>
+
+                {/* Test Mode Notice */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                  <p className="text-sm font-semibold text-blue-800 mb-1">
+                    🧪 Test Mode Active
+                  </p>
+                  <p className="text-xs text-blue-700">
+                    This is a dummy payment for testing. Select any payment method and click "Place Order" to test order creation in the admin panel.
+                  </p>
+                </div>
 
                 <div className="space-y-3 mb-6">
                   {[
