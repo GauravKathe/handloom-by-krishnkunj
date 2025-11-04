@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Search, Mail, Phone } from "lucide-react";
+import { Search, Mail, Phone, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import * as XLSX from 'xlsx';
 
 export default function AdminCustomers() {
   const [customers, setCustomers] = useState<any[]>([]);
@@ -81,15 +83,61 @@ export default function AdminCustomers() {
     customer.city?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const exportToExcel = () => {
+    try {
+      // Prepare data for export
+      const exportData = filteredCustomers.map(customer => ({
+        'Customer Name': customer.full_name,
+        'Email': customer.email,
+        'Mobile Number': customer.mobile_number || 'N/A',
+        'City': customer.city,
+        'State': customer.state,
+        'Total Orders': customer.orders?.[0]?.count || 0,
+        'Joined Date': new Date(customer.created_at).toLocaleDateString()
+      }));
+
+      // Create workbook and worksheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(exportData);
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, 'Customers');
+
+      // Generate file name with current date
+      const fileName = `Customers_${new Date().toISOString().split('T')[0]}.xlsx`;
+      
+      // Write file
+      XLSX.writeFile(wb, fileName);
+      
+      toast({
+        title: "Export Successful",
+        description: `Exported ${exportData.length} customers to Excel`,
+      });
+    } catch (error) {
+      console.error("Export error:", error);
+      toast({
+        title: "Export Failed",
+        description: "Could not export customer data",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>;
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Customer Management</h1>
-        <p className="text-muted-foreground">View and manage registered customers</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Customer Management</h1>
+          <p className="text-muted-foreground">View and manage registered customers</p>
+        </div>
+        <Button onClick={exportToExcel} className="gap-2">
+          <Download className="h-4 w-4" />
+          Export to Excel
+        </Button>
       </div>
 
       <Card>

@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Search, Eye } from "lucide-react";
+import { Search, Eye, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import * as XLSX from 'xlsx';
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -66,15 +67,83 @@ export default function AdminOrders() {
     return matchesSearch && matchesStatus;
   });
 
+  const exportToExcel = () => {
+    try {
+      // Prepare order data
+      const orderExportData = filteredOrders.map(order => ({
+        'Order ID': order.id,
+        'Customer Name': order.profiles?.full_name || 'Unknown',
+        'Customer Email': order.profiles?.email || 'N/A',
+        'Mobile': order.profiles?.mobile_number || 'N/A',
+        'Total Amount': `₹${Number(order.total_amount).toLocaleString()}`,
+        'Discount': order.discount_amount ? `₹${Number(order.discount_amount).toLocaleString()}` : '₹0',
+        'Coupon Code': order.coupon_code || 'None',
+        'Status': order.status,
+        'Order Date': new Date(order.created_at).toLocaleDateString(),
+        'Order Time': new Date(order.created_at).toLocaleTimeString()
+      }));
+
+      // Prepare detailed items data
+      const itemsExportData: any[] = [];
+      filteredOrders.forEach(order => {
+        order.order_items?.forEach((item: any) => {
+          itemsExportData.push({
+            'Order ID': order.id,
+            'Customer Name': order.profiles?.full_name || 'Unknown',
+            'Product Name': item.products?.name || 'N/A',
+            'Quantity': item.quantity,
+            'Price': `₹${Number(item.price).toLocaleString()}`,
+            'Order Date': new Date(order.created_at).toLocaleDateString()
+          });
+        });
+      });
+
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+
+      // Add Orders Summary sheet
+      const ordersWS = XLSX.utils.json_to_sheet(orderExportData);
+      XLSX.utils.book_append_sheet(wb, ordersWS, 'Orders Summary');
+
+      // Add Order Items Details sheet
+      const itemsWS = XLSX.utils.json_to_sheet(itemsExportData);
+      XLSX.utils.book_append_sheet(wb, itemsWS, 'Order Items');
+
+      // Generate file name with current date
+      const fileName = `Orders_${new Date().toISOString().split('T')[0]}.xlsx`;
+      
+      // Write file
+      XLSX.writeFile(wb, fileName);
+      
+      toast({
+        title: "Export Successful",
+        description: `Exported ${orderExportData.length} orders to Excel`,
+      });
+    } catch (error) {
+      console.error("Export error:", error);
+      toast({
+        title: "Export Failed",
+        description: "Could not export order data",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>;
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Order Management</h1>
-        <p className="text-muted-foreground">Track and manage customer orders</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Order Management</h1>
+          <p className="text-muted-foreground">Track and manage customer orders</p>
+        </div>
+        <Button onClick={exportToExcel} className="gap-2">
+          <Download className="h-4 w-4" />
+          Export to Excel
+        </Button>
       </div>
 
       <Card>

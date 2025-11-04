@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, ShoppingCart, Users, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Package, ShoppingCart, Users, TrendingUp, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import * as XLSX from 'xlsx';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -124,6 +126,58 @@ export default function AdminDashboard() {
     }
   };
 
+  const exportToExcel = async () => {
+    try {
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+
+      // Dashboard Stats Sheet
+      const statsData = [
+        ['Dashboard Statistics', ''],
+        ['Metric', 'Value'],
+        ['Total Orders', stats.totalOrders],
+        ['Total Revenue', `₹${stats.totalRevenue.toLocaleString()}`],
+        ['Total Customers', stats.totalCustomers],
+        ['Inventory Count', stats.inventoryCount],
+      ];
+      const statsWS = XLSX.utils.aoa_to_sheet(statsData);
+      XLSX.utils.book_append_sheet(wb, statsWS, 'Statistics');
+
+      // Recent Orders Sheet
+      const ordersData = [
+        ['Recent Orders'],
+        ['Customer Name', 'Email', 'Amount', 'Status', 'Date'],
+        ...recentOrders.map(order => [
+          order.profiles?.full_name || 'Unknown',
+          order.profiles?.email || 'N/A',
+          `₹${Number(order.total_amount).toLocaleString()}`,
+          order.status,
+          new Date(order.created_at).toLocaleDateString()
+        ])
+      ];
+      const ordersWS = XLSX.utils.aoa_to_sheet(ordersData);
+      XLSX.utils.book_append_sheet(wb, ordersWS, 'Recent Orders');
+
+      // Generate file name with current date
+      const fileName = `Dashboard_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+      
+      // Write file
+      XLSX.writeFile(wb, fileName);
+      
+      toast({
+        title: "Export Successful",
+        description: "Dashboard data exported to Excel",
+      });
+    } catch (error) {
+      console.error("Export error:", error);
+      toast({
+        title: "Export Failed",
+        description: "Could not export dashboard data",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -134,9 +188,15 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard Overview</h1>
-        <p className="text-muted-foreground">Welcome to your admin dashboard</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard Overview</h1>
+          <p className="text-muted-foreground">Welcome to your admin dashboard</p>
+        </div>
+        <Button onClick={exportToExcel} className="gap-2">
+          <Download className="h-4 w-4" />
+          Export to Excel
+        </Button>
       </div>
 
       {/* Stats Cards */}
