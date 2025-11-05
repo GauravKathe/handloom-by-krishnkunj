@@ -12,6 +12,13 @@ import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, MapPin, ShoppingBag, CreditCard, Trash2, Plus, Minus } from "lucide-react";
 import { z } from "zod";
 
+// Declare Razorpay on window
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
 // Address validation schema
 const addressSchema = z.object({
   houseNo: z.string().min(1, "House/Flat number is required").max(100),
@@ -53,6 +60,16 @@ export default function Checkout() {
 
   useEffect(() => {
     checkUser();
+    
+    // Load Razorpay script
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    document.body.appendChild(script);
+    
+    return () => {
+      document.body.removeChild(script);
+    };
   }, []);
 
   const checkUser = async () => {
@@ -293,6 +310,7 @@ export default function Checkout() {
   const placeOrder = async () => {
     setProcessing(true);
     try {
+      // Create order in database first
       const orderData = {
         user_id: user.id,
         total_amount: calculateTotal(),
@@ -333,6 +351,127 @@ export default function Checkout() {
           .eq("id", appliedCoupon.id);
       }
 
+      // If COD, complete order directly
+      if (paymentMethod === "cod") {
+        await supabase
+          .from("cart_items")
+          .delete()
+          .eq("user_id", user.id);
+
+        window.dispatchEvent(new Event('cartUpdated'));
+        setOrderConfirmation(order);
+        
+        toast({
+          title: "Order placed successfully! 🎉",
+          description: `Order ID: ${order.id.slice(0, 8)}`,
+        });
+        setProcessing(false);
+        return;
+      }
+
+      // For online payment, initiate Razorpay
+      await initiateRazorpayPayment(order);
+
+    } catch (error: any) {
+      console.error("Error placing order:", error);
+      toast({
+        title: "Order failed",
+        description: error.message || "Failed to place order. Please try again.",
+        variant: "destructive",
+      });
+      setProcessing(false);
+    }
+  };
+
+  const initiateRazorpayPayment = async (order: any) => {
+    try {
+      // Create Razorpay order
+      const { data: razorpayOrder, error: razorpayError } = await supabase.functions.invoke(
+        'razorpay-create-order',
+        {
+          body: {
+            amount: Math.round(order.total_amount * 100), // Convert to paise
+            currency: 'INR',
+            receipt: order.id,
+            notes: {
+              order_id: order.id,
+              user_id: user.id
+            }
+          }
+        }
+      );
+
+      if (razorpayError) throw razorpayError;
+
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_PLACEHOLDER',
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency,
+        name: 'HandloomByKrishnKunj',
+        description: 'Purchase of Handmade Saree',
+        image: '/logo.png',
+        order_id: razorpayOrder.orderId,
+        prefill: {
+          name: profile?.full_name || '',
+          email: profile?.email || '',
+          contact: profile?.mobile_number || ''
+        },
+        notes: {
+          address: `${address.houseNo}, ${address.street}, ${address.city}, ${address.state} - ${address.pincode}`
+        },
+        theme: {
+          color: '#F4D9B5'
+        },
+        handler: async function (response: any) {
+          await handlePaymentSuccess(response, order);
+        },
+        modal: {
+          ondismiss: function () {
+            toast({
+              title: "Payment Cancelled",
+              description: "You can retry payment from your orders page",
+              variant: "destructive",
+            });
+            setProcessing(false);
+          }
+        }
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+
+    } catch (error: any) {
+      console.error("Error initiating Razorpay payment:", error);
+      toast({
+        title: "Payment Error",
+        description: "Failed to initiate payment. Please try again.",
+        variant: "destructive",
+      });
+      setProcessing(false);
+    }
+  };
+
+  const handlePaymentSuccess = async (response: any, order: any) => {
+    try {
+      // Verify payment signature
+      const { data: verificationResult, error: verificationError } = await supabase.functions.invoke(
+        'razorpay-verify-payment',
+        {
+          body: {
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+            order_details: {
+              order_id: order.id
+            }
+          }
+        }
+      );
+
+      if (verificationError || !verificationResult?.verified) {
+        throw new Error("Payment verification failed");
+      }
+
       // Clear cart
       await supabase
         .from("cart_items")
@@ -340,18 +479,18 @@ export default function Checkout() {
         .eq("user_id", user.id);
 
       window.dispatchEvent(new Event('cartUpdated'));
-
       setOrderConfirmation(order);
 
       toast({
-        title: "Order placed successfully! 🎉",
+        title: "Payment Successful! 🎉",
         description: `Order ID: ${order.id.slice(0, 8)}`,
       });
+
     } catch (error: any) {
-      console.error("Error placing order:", error);
+      console.error("Error verifying payment:", error);
       toast({
-        title: "Order failed",
-        description: error.message || "Failed to place order. Please try again.",
+        title: "Payment Verification Failed",
+        description: "Please contact support with your order ID",
         variant: "destructive",
       });
     } finally {
@@ -665,25 +804,23 @@ export default function Checkout() {
               <Card className="p-6">
                 <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
                   <CreditCard className="w-6 h-6 text-primary" />
-                  Payment Method (Test Mode)
+                  Payment Method
                 </h2>
 
-                {/* Test Mode Notice */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                  <p className="text-sm font-semibold text-blue-800 mb-1">
-                    🧪 Test Mode Active
+                {/* Razorpay Secure Notice */}
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                  <p className="text-sm font-semibold text-green-800 mb-1">
+                    🔒 Secure Payment via Razorpay
                   </p>
-                  <p className="text-xs text-blue-700">
-                    This is a dummy payment for testing. Select any payment method and click "Place Order" to test order creation in the admin panel.
+                  <p className="text-xs text-green-700">
+                    Your payment information is encrypted and secure. We use industry-standard Razorpay payment gateway.
                   </p>
                 </div>
 
                 <div className="space-y-3 mb-6">
                   {[
-                    { id: "upi", label: "UPI (Google Pay, PhonePe, Paytm)", icon: "📱" },
-                    { id: "card", label: "Credit/Debit Card", icon: "💳" },
-                    { id: "netbanking", label: "Net Banking", icon: "🏦" },
-                    { id: "cod", label: "Cash on Delivery", icon: "💵" }
+                    { id: "upi", label: "UPI / Cards / Net Banking", icon: "💳", description: "Pay securely via Razorpay" },
+                    { id: "cod", label: "Cash on Delivery", icon: "💵", description: "Pay when order arrives" }
                   ].map((method) => (
                     <div
                       key={method.id}
@@ -698,6 +835,7 @@ export default function Checkout() {
                         <span className="text-2xl">{method.icon}</span>
                         <div className="flex-1">
                           <p className="font-semibold">{method.label}</p>
+                          <p className="text-xs text-muted-foreground">{method.description}</p>
                         </div>
                         <div
                           className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
@@ -723,6 +861,14 @@ export default function Checkout() {
                   </div>
                 )}
 
+                {paymentMethod !== "cod" && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <p className="text-sm text-blue-800">
+                      💳 You will be redirected to Razorpay's secure payment gateway to complete your payment
+                    </p>
+                  </div>
+                )}
+
                 <div className="flex gap-3">
                   <Button
                     variant="outline"
@@ -737,7 +883,7 @@ export default function Checkout() {
                     onClick={placeOrder}
                     disabled={processing}
                   >
-                    {processing ? "Processing..." : `Place Order - ₹${calculateTotal().toLocaleString()}`}
+                    {processing ? "Processing..." : `${paymentMethod === "cod" ? "Place Order" : "Proceed to Pay"} - ₹${calculateTotal().toLocaleString()}`}
                   </Button>
                 </div>
               </Card>
