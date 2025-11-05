@@ -38,6 +38,7 @@ export default function Checkout() {
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [deliveryCharge, setDeliveryCharge] = useState<number>(0);
 
   // Step 1: Address
   const [address, setAddress] = useState({
@@ -60,6 +61,7 @@ export default function Checkout() {
 
   useEffect(() => {
     checkUser();
+    loadDeliveryCharge();
     
     // Load Razorpay script
     const script = document.createElement("script");
@@ -71,6 +73,22 @@ export default function Checkout() {
       document.body.removeChild(script);
     };
   }, []);
+
+  const loadDeliveryCharge = async () => {
+    try {
+      const { data } = await supabase
+        .from("site_content")
+        .select("content")
+        .eq("section", "settings")
+        .single();
+
+      if (data?.content && typeof data.content === 'object' && 'delivery_charge' in data.content) {
+        setDeliveryCharge(Number(data.content.delivery_charge));
+      }
+    } catch (error) {
+      console.error("Error loading delivery charge:", error);
+    }
+  };
 
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -155,8 +173,7 @@ export default function Checkout() {
   };
 
   const calculateDeliveryCharges = () => {
-    const subtotal = calculateSubtotal();
-    return subtotal > 5000 ? 0 : 100;
+    return deliveryCharge;
   };
 
   const calculateTotal = () => {
@@ -358,6 +375,9 @@ export default function Checkout() {
           .delete()
           .eq("user_id", user.id);
 
+        // Send order confirmation email
+        await sendOrderConfirmationEmail(order);
+
         window.dispatchEvent(new Event('cartUpdated'));
         setOrderConfirmation(order);
         
@@ -478,6 +498,10 @@ export default function Checkout() {
         .delete()
         .eq("user_id", user.id);
 
+      // Send order confirmation and payment receipt emails
+      await sendOrderConfirmationEmail(order);
+      await sendPaymentReceiptEmail(order, response.razorpay_payment_id);
+
       window.dispatchEvent(new Event('cartUpdated'));
       setOrderConfirmation(order);
 
@@ -495,6 +519,47 @@ export default function Checkout() {
       });
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const sendOrderConfirmationEmail = async (order: any) => {
+    try {
+      const items = cartItems.map(item => ({
+        name: item.products.name,
+        quantity: item.quantity,
+        price: calculateItemTotal(item)
+      }));
+
+      await supabase.functions.invoke('send-order-confirmation', {
+        body: {
+          email: profile?.email,
+          name: profile?.full_name,
+          orderId: order.id,
+          totalAmount: order.total_amount,
+          items,
+          shippingAddress: address
+        }
+      });
+    } catch (error) {
+      console.error("Error sending order confirmation:", error);
+    }
+  };
+
+  const sendPaymentReceiptEmail = async (order: any, paymentId: string) => {
+    try {
+      await supabase.functions.invoke('send-payment-receipt', {
+        body: {
+          email: profile?.email,
+          name: profile?.full_name,
+          orderId: order.id,
+          paymentId: paymentId,
+          amount: order.total_amount,
+          paymentMethod: paymentMethod,
+          date: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      console.error("Error sending payment receipt:", error);
     }
   };
 

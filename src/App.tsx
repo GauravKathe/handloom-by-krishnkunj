@@ -26,6 +26,7 @@ import AdminSettings from "./pages/admin/Settings";
 import AdminCoupons from "./pages/admin/Coupons";
 import AdminContentManagement from "./pages/admin/ContentManagement";
 import AdminAnalytics from "./pages/admin/Analytics";
+import PaymentAnalytics from "./pages/admin/PaymentAnalytics";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,7 @@ const App = () => (
             <Route path="coupons" element={<AdminCoupons />} />
             <Route path="content" element={<AdminContentManagement />} />
             <Route path="analytics" element={<AdminAnalytics />} />
+            <Route path="payment-analytics" element={<PaymentAnalytics />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>
           

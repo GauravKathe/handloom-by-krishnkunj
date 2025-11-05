@@ -1,11 +1,59 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function AdminSettings() {
   const { toast } = useToast();
+  const [deliveryCharge, setDeliveryCharge] = useState<number>(0);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      const { data } = await supabase
+        .from("site_content")
+        .select("content")
+        .eq("section", "settings")
+        .single();
+
+      if (data?.content && typeof data.content === 'object' && 'delivery_charge' in data.content) {
+        setDeliveryCharge(Number(data.content.delivery_charge));
+      }
+    } catch (error) {
+      console.error("Error loading settings:", error);
+    }
+  };
+
+  const handleSaveDelivery = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("site_content")
+        .update({
+          content: { delivery_charge: deliveryCharge }
+        })
+        .eq("section", "settings");
+
+      if (error) throw error;
+
+      toast({ title: "Delivery settings saved successfully" });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSave = () => {
     toast({ title: "Settings saved successfully" });
@@ -41,13 +89,19 @@ export default function AdminSettings() {
           <CardContent className="space-y-4">
             <div>
               <Label>Standard Delivery Charge (₹)</Label>
-              <Input type="number" placeholder="100" />
+              <Input 
+                type="number" 
+                placeholder="0" 
+                value={deliveryCharge}
+                onChange={(e) => setDeliveryCharge(Number(e.target.value))}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Set to 0 for free delivery. This will be applied to all orders.
+              </p>
             </div>
-            <div>
-              <Label>Tax Rate (%)</Label>
-              <Input type="number" placeholder="5" />
-            </div>
-            <Button onClick={handleSave}>Save Delivery Settings</Button>
+            <Button onClick={handleSaveDelivery} disabled={loading}>
+              {loading ? "Saving..." : "Save Delivery Settings"}
+            </Button>
           </CardContent>
         </Card>
 
