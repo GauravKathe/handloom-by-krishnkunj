@@ -22,6 +22,8 @@ export default function ProductDetail() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
+    // Scroll to top when product changes
+    window.scrollTo(0, 0);
     loadProduct();
     loadAddOns();
     checkUser();

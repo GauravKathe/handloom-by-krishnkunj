@@ -81,12 +81,20 @@ export default function AdminOrders() {
 
   const exportToExcel = () => {
     try {
-      // Prepare order data
+      // Prepare order data with full shipping address
       const orderExportData = filteredOrders.map(order => ({
         'Order ID': order.id,
         'Customer Name': order.profiles?.full_name || 'Unknown',
         'Customer Email': order.profiles?.email || 'N/A',
         'Mobile': order.profiles?.mobile_number || 'N/A',
+        'City': order.profiles?.city || 'N/A',
+        'State': order.profiles?.state || 'N/A',
+        'Shipping House': order.shipping_address?.house || 'N/A',
+        'Shipping Street': order.shipping_address?.street || 'N/A',
+        'Shipping Landmark': order.shipping_address?.landmark || '',
+        'Shipping City': order.shipping_address?.city || 'N/A',
+        'Shipping State': order.shipping_address?.state || 'N/A',
+        'Shipping Pincode': order.shipping_address?.pincode || 'N/A',
         'Total Amount': `₹${Number(order.total_amount).toLocaleString()}`,
         'Discount': order.discount_amount ? `₹${Number(order.discount_amount).toLocaleString()}` : '₹0',
         'Coupon Code': order.coupon_code || 'None',

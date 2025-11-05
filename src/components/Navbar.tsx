@@ -130,12 +130,12 @@ export const Navbar = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-6">
+          <div className="hidden lg:flex items-center space-x-8">
             <NavLinks />
           </div>
 
           {/* Search and Icons */}
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-3 md:gap-6">
             {/* Search - Desktop */}
             <form onSubmit={handleSearch} className="hidden md:flex items-center">
               <div className="relative">

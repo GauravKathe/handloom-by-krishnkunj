@@ -29,27 +29,35 @@ export default function AdminLayout() {
   }, []);
 
   const checkAuth = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
     
-    if (!user) {
-      navigate("/auth");
+    if (!session) {
+      navigate('/auth');
       return;
     }
 
-    const { data: roleData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .single();
+    // Check if user has admin role using server-side function
+    const { data: hasAdminRole, error } = await supabase
+      .rpc('has_role', { _user_id: session.user.id, _role: 'admin' });
 
-    if (!roleData) {
+    if (error) {
+      console.error('Error checking admin role:', error);
       toast({
-        title: "Access Denied",
-        description: "You don't have admin permissions",
+        title: "Error",
+        description: "Failed to verify admin access",
         variant: "destructive",
       });
-      navigate("/");
+      navigate('/');
+      return;
+    }
+    
+    if (!hasAdminRole) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to access the admin panel",
+        variant: "destructive",
+      });
+      navigate('/');
     }
   };
 
