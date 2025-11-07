@@ -180,9 +180,10 @@ export default function Contact() {
                       <div>
                         <p className="font-medium">Address</p>
                         <p className="text-muted-foreground text-sm">
-                          123 Handloom Street<br />
-                          Mumbai, Maharashtra 400001<br />
-                          India
+                          Balaji Krupa, Kanadi Lane<br />
+                          DG Road, Yeola<br />
+                          District Nashik - 423401<br />
+                          Maharashtra, India
                         </p>
                       </div>
                     </div>
@@ -192,7 +193,7 @@ export default function Contact() {
                       <div>
                         <p className="font-medium">Phone</p>
                         <p className="text-muted-foreground text-sm">
-                          +91 98765 43210
+                          +91 9730142172
                         </p>
                       </div>
                     </div>
@@ -202,7 +203,8 @@ export default function Contact() {
                       <div>
                         <p className="font-medium">Email</p>
                         <p className="text-muted-foreground text-sm">
-                          info@handloombykrishnkunj.com
+                          contact@handloombykrishnkunj.com<br />
+                          handloombykrishnkunj@gmail.com
                         </p>
                       </div>
                     </div>
@@ -215,20 +217,27 @@ export default function Contact() {
                   <h3 className="font-semibold text-xl mb-6">Follow Us</h3>
                   <div className="flex space-x-4">
                     <a
-                      href="#"
+                      href="https://www.facebook.com/handloombykrishnkunj"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+                      aria-label="Visit our Facebook page"
                     >
                       <Facebook className="h-6 w-6 text-primary" />
                     </a>
                     <a
-                      href="#"
+                      href="https://www.instagram.com/handloom_by_krishnkunj?igsh=MXYzOXNkMXl2OXU5eQ=="
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+                      aria-label="Visit our Instagram page"
                     >
                       <Instagram className="h-6 w-6 text-primary" />
                     </a>
                     <a
-                      href="#"
+                      href="mailto:contact@handloombykrishnkunj.com"
                       className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+                      aria-label="Send us an email"
                     >
                       <Mail className="h-6 w-6 text-primary" />
                     </a>

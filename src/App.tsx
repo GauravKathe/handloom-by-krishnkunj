@@ -15,6 +15,8 @@ import Reviews from "./pages/Reviews";
 import NewArrivals from "./pages/NewArrivals";
 import BestSellers from "./pages/BestSellers";
 import Profile from "./pages/Profile";
+import Returns from "./pages/Returns";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import NotFound from "./pages/NotFound";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -49,6 +51,8 @@ const App = () => (
           <Route path="/new-arrivals" element={<NewArrivals />} />
           <Route path="/best-sellers" element={<BestSellers />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/returns" element={<Returns />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
           
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminLayout />}>

@@ -73,29 +73,51 @@ export const Footer = () => {
           <div>
             <h4 className="text-lg font-semibold mb-4">Contact Us</h4>
             <ul className="space-y-3 text-sm">
-              <li className="flex items-center space-x-2">
-                <MapPin className="h-4 w-4" />
-                <span>Mumbai, Maharashtra, India</span>
+              <li className="flex items-start space-x-2">
+                <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span>Balaji Krupa, Kanadi Lane, DG Road, Yeola, Dist. Nashik - 423401</span>
               </li>
               <li className="flex items-center space-x-2">
                 <Phone className="h-4 w-4" />
-                <span>+91 98765 43210</span>
+                <span>+91 9730142172</span>
               </li>
-              <li className="flex items-center space-x-2">
-                <Mail className="h-4 w-4" />
-                <span>info@handloombykrishnkunj.com</span>
+              <li className="flex flex-col space-y-1">
+                <div className="flex items-center space-x-2">
+                  <Mail className="h-4 w-4" />
+                  <span>contact@handloombykrishnkunj.com</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Mail className="h-4 w-4 opacity-0" />
+                  <span>handloombykrishnkunj@gmail.com</span>
+                </div>
               </li>
             </ul>
 
             {/* Social Media */}
             <div className="flex space-x-4 mt-6">
-              <a href="#" className="hover:text-secondary transition-colors">
+              <a 
+                href="https://www.facebook.com/handloombykrishnkunj" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:text-secondary transition-colors"
+                aria-label="Visit our Facebook page"
+              >
                 <Facebook className="h-5 w-5" />
               </a>
-              <a href="#" className="hover:text-secondary transition-colors">
+              <a 
+                href="https://www.instagram.com/handloom_by_krishnkunj?igsh=MXYzOXNkMXl2OXU5eQ==" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:text-secondary transition-colors"
+                aria-label="Visit our Instagram page"
+              >
                 <Instagram className="h-5 w-5" />
               </a>
-              <a href="#" className="hover:text-secondary transition-colors">
+              <a 
+                href="mailto:contact@handloombykrishnkunj.com" 
+                className="hover:text-secondary transition-colors"
+                aria-label="Send us an email"
+              >
                 <Mail className="h-5 w-5" />
               </a>
             </div>
