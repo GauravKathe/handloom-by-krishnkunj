@@ -6,7 +6,7 @@ import { PackageX, RefreshCw, Clock, ExternalLink } from "lucide-react";
 
 export default function Returns() {
   const handleExchangeRequest = () => {
-    window.open("https://docs.google.com/forms/d/e/YOUR_GOOGLE_FORM_ID/viewform", "_blank");
+    window.open("https://docs.google.com/forms/d/e/1FAIpQLScxKqI_FXA6OBLQp4BKyvRw8P4Xjqbtklmwkm4wZxtq-4DRWA/viewform?usp=dialog", "_blank");
   };
 
   return (
