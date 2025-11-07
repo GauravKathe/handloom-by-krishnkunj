@@ -277,15 +277,25 @@ export default function ProductDetail() {
             )}
 
             {/* Action Buttons */}
-            <Button
-              size="lg"
-              className="w-full"
-              onClick={handleAddToCart}
-              disabled={!product.available}
-            >
-              <ShoppingCart className="mr-2 h-5 w-5" />
-              Add to Cart
-            </Button>
+            <div className="space-y-3">
+              <Button
+                size="lg"
+                className="w-full"
+                onClick={handleAddToCart}
+                disabled={!product.available}
+              >
+                <ShoppingCart className="mr-2 h-5 w-5" />
+                Add to Cart
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full"
+                onClick={() => navigate('/submit-review')}
+              >
+                Write a Review
+              </Button>
+            </div>
           </div>
         </div>
 

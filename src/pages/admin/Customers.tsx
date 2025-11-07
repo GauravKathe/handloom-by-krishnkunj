@@ -11,6 +11,8 @@ export default function AdminCustomers() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -77,11 +79,18 @@ export default function AdminCustomers() {
     }
   };
 
-  const filteredCustomers = customers.filter((customer) =>
-    customer.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.city?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredCustomers = customers.filter((customer) => {
+    const matchesSearch = 
+      customer.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      customer.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      customer.city?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const customerDate = new Date(customer.created_at);
+    const matchesFromDate = !fromDate || customerDate >= new Date(fromDate);
+    const matchesToDate = !toDate || customerDate <= new Date(toDate + 'T23:59:59');
+    
+    return matchesSearch && matchesFromDate && matchesToDate;
+  });
 
   const exportToExcel = () => {
     try {
@@ -142,13 +151,31 @@ export default function AdminCustomers() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search customers by name, email, or city..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex items-center gap-2 flex-1">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search customers by name, email, or city..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Input
+                type="date"
+                placeholder="From Date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="w-full md:w-[160px]"
+              />
+              <Input
+                type="date"
+                placeholder="To Date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="w-full md:w-[160px]"
+              />
+            </div>
           </div>
         </CardHeader>
         <CardContent>

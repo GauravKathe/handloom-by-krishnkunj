@@ -114,6 +114,9 @@ export const Navbar = () => {
       <Link to="/reviews" className="text-sm font-medium hover:text-primary transition-colors">
         Reviews
       </Link>
+      <Link to="/submit-review" className="text-sm font-medium hover:text-primary transition-colors">
+        Submit Review
+      </Link>
       <Link to="/contact" className="text-sm font-medium hover:text-primary transition-colors">
         Contact
       </Link>

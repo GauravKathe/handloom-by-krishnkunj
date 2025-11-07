@@ -16,6 +16,8 @@ export default function AdminOrders() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -76,7 +78,12 @@ export default function AdminOrders() {
       order.profiles?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.profiles?.email?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || order.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    
+    const orderDate = new Date(order.created_at);
+    const matchesFromDate = !fromDate || orderDate >= new Date(fromDate);
+    const matchesToDate = !toDate || orderDate <= new Date(toDate + 'T23:59:59');
+    
+    return matchesSearch && matchesStatus && matchesFromDate && matchesToDate;
   });
 
   const exportToExcel = () => {
@@ -190,6 +197,22 @@ export default function AdminOrders() {
                 <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
+            <div className="flex gap-2">
+              <Input
+                type="date"
+                placeholder="From Date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="w-full md:w-[160px]"
+              />
+              <Input
+                type="date"
+                placeholder="To Date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="w-full md:w-[160px]"
+              />
+            </div>
           </div>
         </CardHeader>
         <CardContent>
