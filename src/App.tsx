@@ -18,7 +18,7 @@ import Profile from "./pages/Profile";
 import Returns from "./pages/Returns";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import FAQ from "./pages/FAQ";
-import SubmitReview from "./pages/SubmitReview";
+
 import NotFound from "./pages/NotFound";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -56,7 +56,7 @@ const App = () => (
           <Route path="/returns" element={<Returns />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/faq" element={<FAQ />} />
-          <Route path="/submit-review" element={<SubmitReview />} />
+          
           
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminLayout />}>

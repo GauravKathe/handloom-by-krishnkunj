@@ -191,20 +191,38 @@ export default function AdminCoupons() {
 
   const toggleStatus = async (coupon: Coupon) => {
     const newStatus = coupon.status === "active" ? "inactive" : "active";
-    const { error } = await supabase
-      .from("coupons")
-      .update({ status: newStatus })
-      .eq("id", coupon.id);
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    if (error) {
+      const { error } = await supabase
+        .from("coupons")
+        .update({ status: newStatus })
+        .eq("id", coupon.id);
+
+      if (error) {
+        toast({
+          title: "Error updating status",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Status updated successfully" });
+        loadCoupons();
+      }
+    } catch (error: any) {
       toast({
-        title: "Error updating status",
+        title: "Error",
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      toast({ title: "Status updated successfully" });
-      loadCoupons();
     }
   };
 
