@@ -79,12 +79,13 @@ export default function AdminDashboard() {
 
   const loadDashboardData = async () => {
     try {
-      // Get total orders
+      // Get total orders (exclude cancelled)
       const { count: ordersCount, data: ordersData } = await supabase
         .from("orders")
-        .select("*", { count: "exact" });
+        .select("*", { count: "exact" })
+        .neq("status", "cancelled");
 
-      // Calculate total revenue
+      // Calculate total revenue (exclude cancelled)
       const totalRevenue = ordersData?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
 
       // Get total customers (profiles)

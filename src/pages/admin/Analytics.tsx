@@ -39,11 +39,12 @@ export default function AdminAnalytics() {
     daysAgo.setDate(daysAgo.getDate() - parseInt(dateRange));
 
     try {
-      // Get orders data
+      // Get orders data (exclude cancelled)
       const { data: orders, error: ordersError } = await supabase
         .from("orders")
         .select("*, order_items(*, product_id, quantity)")
-        .gte("created_at", daysAgo.toISOString());
+        .gte("created_at", daysAgo.toISOString())
+        .neq("status", "cancelled");
 
       if (ordersError) throw ordersError;
 

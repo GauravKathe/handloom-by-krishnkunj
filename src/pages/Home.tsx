@@ -177,29 +177,27 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+          <div className="flex gap-6 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory scrollbar-hide">
             {categories.map((category) => (
               <Link
                 key={category.id}
                 to={`/shop?category=${category.id}`}
-                className="group"
+                className="group flex-shrink-0 snap-start"
               >
-                <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-                  <CardContent className="p-0">
-                    <div className="aspect-square rounded-full overflow-hidden m-4 bg-gradient-to-br from-secondary/20 to-primary/20">
-                      <img
-                        src={categoryImages[category.name] || category.image_url || "/placeholder.svg"}
-                        alt={category.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                      />
-                    </div>
-                    <div className="p-4 text-center">
-                      <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                        {category.name}
-                      </h3>
-                    </div>
-                  </CardContent>
-                </Card>
+                <div className="flex flex-col items-center">
+                  <div className="aspect-square w-32 md:w-40 rounded-full overflow-hidden bg-gradient-to-br from-secondary/20 to-primary/20 hover:shadow-lg transition-all duration-300 hover:scale-105">
+                    <img
+                      src={categoryImages[category.name] || category.image_url || "/placeholder.svg"}
+                      alt={category.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="mt-3 text-center">
+                    <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                      {category.name}
+                    </h3>
+                  </div>
+                </div>
               </Link>
             ))}
           </div>
