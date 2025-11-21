@@ -202,6 +202,23 @@ export default function AdminCoupons() {
         return;
       }
 
+      // Check if user is admin
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .single();
+
+      if (!roleData) {
+        toast({
+          title: "Unauthorized",
+          description: "Only admins can update coupon status",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from("coupons")
         .update({ status: newStatus })
