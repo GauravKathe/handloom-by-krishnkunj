@@ -192,54 +192,20 @@ export default function AdminCoupons() {
   const toggleStatus = async (coupon: Coupon) => {
     const newStatus = coupon.status === "active" ? "inactive" : "active";
     
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast({
-          title: "Authentication required",
-          variant: "destructive",
-        });
-        return;
-      }
+    const { error } = await supabase
+      .from("coupons")
+      .update({ status: newStatus })
+      .eq("id", coupon.id);
 
-      // Check if user is admin
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "admin")
-        .single();
-
-      if (!roleData) {
-        toast({
-          title: "Unauthorized",
-          description: "Only admins can update coupon status",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const { error } = await supabase
-        .from("coupons")
-        .update({ status: newStatus })
-        .eq("id", coupon.id);
-
-      if (error) {
-        toast({
-          title: "Error updating status",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({ title: "Status updated successfully" });
-        loadCoupons();
-      }
-    } catch (error: any) {
+    if (error) {
       toast({
-        title: "Error",
+        title: "Error updating status",
         description: error.message,
         variant: "destructive",
       });
+    } else {
+      toast({ title: "Status updated successfully" });
+      loadCoupons();
     }
   };
 

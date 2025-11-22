@@ -2,7 +2,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import Shop from "./pages/Shop";
@@ -34,6 +36,68 @@ import PaymentAnalytics from "./pages/admin/PaymentAnalytics";
 
 const queryClient = new QueryClient();
 
+// Admin route protection wrapper
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    checkAdminStatus();
+  }, []);
+
+  const checkAdminStatus = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (user?.email === "handloombykrishnkunj@gmail.com") {
+      setIsAdmin(true);
+    } else {
+      setIsAdmin(false);
+    }
+    setLoading(false);
+  };
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Customer route protection wrapper
+const CustomerRoute = ({ children }: { children: React.ReactNode }) => {
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    checkAdminStatus();
+  }, []);
+
+  const checkAdminStatus = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (user?.email === "handloombykrishnkunj@gmail.com") {
+      setIsAdmin(true);
+    } else {
+      setIsAdmin(false);
+    }
+    setLoading(false);
+  };
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  }
+
+  if (isAdmin) {
+    return <Navigate to="/admin" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -41,25 +105,25 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<CustomerRoute><Home /></CustomerRoute>} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/shop" element={<Shop />} />
-          <Route path="/product/:id" element={<ProductDetail />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/reviews" element={<Reviews />} />
-          <Route path="/new-arrivals" element={<NewArrivals />} />
-          <Route path="/best-sellers" element={<BestSellers />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/returns" element={<Returns />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/faq" element={<FAQ />} />
+          <Route path="/shop" element={<CustomerRoute><Shop /></CustomerRoute>} />
+          <Route path="/product/:id" element={<CustomerRoute><ProductDetail /></CustomerRoute>} />
+          <Route path="/about" element={<CustomerRoute><About /></CustomerRoute>} />
+          <Route path="/contact" element={<CustomerRoute><Contact /></CustomerRoute>} />
+          <Route path="/cart" element={<CustomerRoute><Cart /></CustomerRoute>} />
+          <Route path="/checkout" element={<CustomerRoute><Checkout /></CustomerRoute>} />
+          <Route path="/reviews" element={<CustomerRoute><Reviews /></CustomerRoute>} />
+          <Route path="/new-arrivals" element={<CustomerRoute><NewArrivals /></CustomerRoute>} />
+          <Route path="/best-sellers" element={<CustomerRoute><BestSellers /></CustomerRoute>} />
+          <Route path="/profile" element={<CustomerRoute><Profile /></CustomerRoute>} />
+          <Route path="/returns" element={<CustomerRoute><Returns /></CustomerRoute>} />
+          <Route path="/privacy" element={<CustomerRoute><PrivacyPolicy /></CustomerRoute>} />
+          <Route path="/faq" element={<CustomerRoute><FAQ /></CustomerRoute>} />
           
           
           {/* Admin Routes */}
-          <Route path="/admin" element={<AdminLayout />}>
+          <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
             <Route index element={<AdminDashboard />} />
             <Route path="products" element={<AdminProducts />} />
             <Route path="orders" element={<AdminOrders />} />

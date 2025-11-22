@@ -17,8 +17,7 @@ export default function Reviews() {
     const { data } = await supabase
       .from("reviews")
       .select("*, products(name), profiles(full_name)")
-      .order("created_at", { ascending: false })
-      .limit(20);
+      .order("created_at", { ascending: false });
 
     setReviews(data || []);
   };
