@@ -12,15 +12,20 @@ interface UserRole {
   user_id: string;
   role: string;
   created_at: string;
-  profiles?: {
-    full_name: string;
-    email: string;
-  };
+}
+
+interface Profile {
+  full_name: string;
+  email: string;
+}
+
+interface UserRoleWithProfile extends UserRole {
+  profile?: Profile;
 }
 
 export default function RoleManagement() {
   const [loading, setLoading] = useState(true);
-  const [userRoles, setUserRoles] = useState<UserRole[]>([]);
+  const [userRoles, setUserRoles] = useState<UserRoleWithProfile[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -28,15 +33,9 @@ export default function RoleManagement() {
   }, []);
 
   const loadUserRoles = async () => {
-    const { data, error } = await supabase
+    const { data: rolesData, error } = await supabase
       .from("user_roles")
-      .select(`
-        *,
-        profiles (
-          full_name,
-          email
-        )
-      `)
+      .select("*")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -50,7 +49,25 @@ export default function RoleManagement() {
       return;
     }
 
-    setUserRoles(data || []);
+    // Get unique user IDs
+    const userIds = [...new Set(rolesData?.map(role => role.user_id) || [])];
+    
+    // Fetch profile data for these users
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("id, full_name, email")
+      .in("id", userIds);
+
+    // Create a map of user_id to profile
+    const profileMap = new Map(profileData?.map(p => [p.id, p]) || []);
+
+    // Combine the data
+    const rolesWithProfiles = rolesData?.map(role => ({
+      ...role,
+      profile: profileMap.get(role.user_id)
+    })) || [];
+
+    setUserRoles(rolesWithProfiles);
     setLoading(false);
   };
 
@@ -176,9 +193,9 @@ export default function RoleManagement() {
                   <TableRow key={userRole.id}>
                     <TableCell>
                       <div className="text-sm">
-                        <div className="font-medium">{userRole.profiles?.full_name}</div>
+                        <div className="font-medium">{userRole.profile?.full_name || "Unknown"}</div>
                         <div className="text-muted-foreground text-xs">
-                          {userRole.profiles?.email}
+                          {userRole.profile?.email || ""}
                         </div>
                       </div>
                     </TableCell>
