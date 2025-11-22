@@ -15,30 +15,29 @@ interface ActivityLog {
   old_data: any;
   new_data: any;
   created_at: string;
-  profiles?: {
-    full_name: string;
-    email: string;
-  };
+}
+
+interface Profile {
+  full_name: string;
+  email: string;
+}
+
+interface ActivityLogWithProfile extends ActivityLog {
+  profile?: Profile;
 }
 
 export default function ActivityLog() {
   const [loading, setLoading] = useState(true);
-  const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [logs, setLogs] = useState<ActivityLogWithProfile[]>([]);
 
   useEffect(() => {
     loadLogs();
   }, []);
 
   const loadLogs = async () => {
-    const { data, error } = await supabase
+    const { data: activityData, error } = await supabase
       .from("admin_activity_log")
-      .select(`
-        *,
-        profiles (
-          full_name,
-          email
-        )
-      `)
+      .select("*")
       .order("created_at", { ascending: false })
       .limit(100);
 
@@ -48,7 +47,25 @@ export default function ActivityLog() {
       return;
     }
 
-    setLogs(data || []);
+    // Get unique user IDs
+    const userIds = [...new Set(activityData?.map(log => log.user_id) || [])];
+    
+    // Fetch profile data for these users
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("id, full_name, email")
+      .in("id", userIds);
+
+    // Create a map of user_id to profile
+    const profileMap = new Map(profileData?.map(p => [p.id, p]) || []);
+
+    // Combine the data
+    const logsWithProfiles = activityData?.map(log => ({
+      ...log,
+      profile: profileMap.get(log.user_id)
+    })) || [];
+
+    setLogs(logsWithProfiles);
     setLoading(false);
   };
 
@@ -128,8 +145,8 @@ export default function ActivityLog() {
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
-                        <div className="font-medium">{log.profiles?.full_name}</div>
-                        <div className="text-muted-foreground text-xs">{log.profiles?.email}</div>
+                        <div className="font-medium">{log.profile?.full_name || "Unknown"}</div>
+                        <div className="text-muted-foreground text-xs">{log.profile?.email || ""}</div>
                       </div>
                     </TableCell>
                     <TableCell>

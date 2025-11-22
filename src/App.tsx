@@ -33,6 +33,9 @@ import AdminCoupons from "./pages/admin/Coupons";
 import AdminContentManagement from "./pages/admin/ContentManagement";
 import AdminAnalytics from "./pages/admin/Analytics";
 import PaymentAnalytics from "./pages/admin/PaymentAnalytics";
+import CouponAnalytics from "./pages/admin/CouponAnalytics";
+import ActivityLog from "./pages/admin/ActivityLog";
+import RoleManagement from "./pages/admin/RoleManagement";
 
 const queryClient = new QueryClient();
 
@@ -130,6 +133,9 @@ const App = () => (
             <Route path="customers" element={<AdminCustomers />} />
             <Route path="reviews" element={<AdminReviews />} />
             <Route path="coupons" element={<AdminCoupons />} />
+            <Route path="coupon-analytics" element={<CouponAnalytics />} />
+            <Route path="activity-log" element={<ActivityLog />} />
+            <Route path="role-management" element={<RoleManagement />} />
             <Route path="content" element={<AdminContentManagement />} />
             <Route path="analytics" element={<AdminAnalytics />} />
             <Route path="payment-analytics" element={<PaymentAnalytics />} />

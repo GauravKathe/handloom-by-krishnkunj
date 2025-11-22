@@ -13,7 +13,10 @@ import {
   Settings, 
   LogOut,
   Menu,
-  X
+  X,
+  PieChart,
+  History,
+  Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -77,6 +80,9 @@ export default function AdminLayout() {
     { icon: Star, label: "Reviews", path: "/admin/reviews" },
     { icon: FileText, label: "Content", path: "/admin/content" },
     { icon: Tag, label: "Coupons", path: "/admin/coupons" },
+    { icon: PieChart, label: "Coupon Analytics", path: "/admin/coupon-analytics" },
+    { icon: History, label: "Activity Log", path: "/admin/activity-log" },
+    { icon: Shield, label: "Role Management", path: "/admin/role-management" },
     { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
     { icon: Settings, label: "Settings", path: "/admin/settings" },
   ];

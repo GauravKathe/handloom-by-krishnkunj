@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { useActivityLog } from "@/hooks/useActivityLog";
 import { Plus, Pencil, Trash2, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 
@@ -37,6 +38,7 @@ export default function AdminCoupons() {
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
+  const { logActivity } = useActivityLog();
 
   const [formData, setFormData] = useState({
     code: "",
@@ -124,6 +126,7 @@ export default function AdminCoupons() {
     };
 
     if (editingCoupon) {
+      const oldData = { ...editingCoupon };
       const { error } = await supabase
         .from("coupons")
         .update(couponData)
@@ -136,13 +139,14 @@ export default function AdminCoupons() {
           variant: "destructive",
         });
       } else {
+        await logActivity("update", "coupon", editingCoupon.id, oldData, couponData);
         toast({ title: "Coupon updated successfully" });
         setDialogOpen(false);
         resetForm();
         loadCoupons();
       }
     } else {
-      const { error } = await supabase.from("coupons").insert(couponData);
+      const { data, error } = await supabase.from("coupons").insert(couponData).select().single();
 
       if (error) {
         toast({
@@ -151,6 +155,7 @@ export default function AdminCoupons() {
           variant: "destructive",
         });
       } else {
+        await logActivity("create", "coupon", data?.id || null, null, couponData);
         toast({ title: "Coupon created successfully" });
         setDialogOpen(false);
         resetForm();
@@ -175,6 +180,7 @@ export default function AdminCoupons() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this coupon?")) return;
 
+    const coupon = coupons.find(c => c.id === id);
     const { error } = await supabase.from("coupons").delete().eq("id", id);
 
     if (error) {
@@ -184,6 +190,7 @@ export default function AdminCoupons() {
         variant: "destructive",
       });
     } else {
+      await logActivity("delete", "coupon", id, coupon, null);
       toast({ title: "Coupon deleted successfully" });
       loadCoupons();
     }
@@ -191,6 +198,7 @@ export default function AdminCoupons() {
 
   const toggleStatus = async (coupon: Coupon) => {
     const newStatus = coupon.status === "active" ? "inactive" : "active";
+    const oldData = { status: coupon.status };
     
     const { error } = await supabase
       .from("coupons")
@@ -204,6 +212,7 @@ export default function AdminCoupons() {
         variant: "destructive",
       });
     } else {
+      await logActivity("update", "coupon", coupon.id, oldData, { status: newStatus });
       toast({ title: "Status updated successfully" });
       loadCoupons();
     }
