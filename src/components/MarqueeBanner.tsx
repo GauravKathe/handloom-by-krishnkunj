@@ -45,11 +45,13 @@ export const MarqueeBanner = () => {
 
   return (
     <div className="bg-primary text-primary-foreground py-2 overflow-hidden">
-      <div className="animate-marquee whitespace-nowrap">
-        <span className="mx-4">{content}</span>
-        <span className="mx-4">{content}</span>
-        <span className="mx-4">{content}</span>
-        <span className="mx-4">{content}</span>
+      <div className="flex animate-marquee">
+        <span className="flex-shrink-0 px-4">{content}</span>
+        <span className="flex-shrink-0 px-4">{content}</span>
+        <span className="flex-shrink-0 px-4">{content}</span>
+        <span className="flex-shrink-0 px-4">{content}</span>
+        <span className="flex-shrink-0 px-4">{content}</span>
+        <span className="flex-shrink-0 px-4">{content}</span>
       </div>
     </div>
   );
