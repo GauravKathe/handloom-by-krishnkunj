@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { FloatingContactSupport } from "@/components/FloatingContactSupport";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import Shop from "./pages/Shop";
@@ -106,6 +107,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <FloatingContactSupport />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<CustomerRoute><Home /></CustomerRoute>} />
