@@ -11,6 +11,19 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  @keyframes marquee-slow {
+    0% {
+      transform: translateX(0%);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-marquee-slow {
+    animation: marquee-slow 30s linear infinite;
+  }
 }
 
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
