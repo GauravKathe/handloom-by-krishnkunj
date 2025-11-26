@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 export const MarqueeBanner = () => {
   const [content, setContent] = useState<string>("Welcome to our store! Free shipping on orders over ₹2000");
   const [isVisible, setIsVisible] = useState(true);
+  const [isEnabled, setIsEnabled] = useState(true);
 
   useEffect(() => {
     const closed = localStorage.getItem("marquee-banner-closed");
@@ -46,8 +47,14 @@ export const MarqueeBanner = () => {
       .eq("section", "marquee_banner")
       .single();
 
-    if (data?.content && typeof data.content === 'object' && 'text' in data.content) {
-      setContent((data.content as { text: string }).text);
+    if (data?.content && typeof data.content === 'object') {
+      const contentData = data.content as { text?: string; enabled?: boolean };
+      if ('text' in contentData) {
+        setContent(contentData.text || "");
+      }
+      if ('enabled' in contentData) {
+        setIsEnabled(contentData.enabled ?? true);
+      }
     }
   };
 
@@ -56,7 +63,7 @@ export const MarqueeBanner = () => {
     localStorage.setItem("marquee-banner-closed", "true");
   };
 
-  if (!content || !isVisible) return null;
+  if (!content || !isVisible || !isEnabled) return null;
 
   return (
     <div className="bg-primary text-primary-foreground py-2 overflow-hidden relative">
