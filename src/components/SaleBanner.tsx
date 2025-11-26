@@ -8,13 +8,7 @@ export const SaleBanner = () => {
 
   return (
     <div className="relative bg-primary text-primary-foreground overflow-hidden">
-      <div className="animate-marquee-slow whitespace-nowrap py-2 px-4 flex items-center justify-center gap-8">
-        <span className="inline-flex items-center gap-2 text-sm md:text-base font-semibold">
-          ✨ SPECIAL OFFER - Get Extra 10% off on Prepaid Orders | Use Code: <span className="bg-primary-foreground text-primary px-2 py-0.5 rounded">PREPAID10</span>
-        </span>
-        <span className="inline-flex items-center gap-2 text-sm md:text-base font-semibold">
-          📞 For Wholesale Orders, Contact: <span className="bg-primary-foreground text-primary px-2 py-0.5 rounded">+91 8657218488</span>
-        </span>
+      <div className="py-2 px-4 flex items-center justify-center gap-4 md:gap-8 flex-wrap">
         <span className="inline-flex items-center gap-2 text-sm md:text-base font-semibold">
           ✨ SPECIAL OFFER - Get Extra 10% off on Prepaid Orders | Use Code: <span className="bg-primary-foreground text-primary px-2 py-0.5 rounded">PREPAID10</span>
         </span>
