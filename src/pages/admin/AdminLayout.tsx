@@ -79,6 +79,7 @@ export default function AdminLayout() {
     { icon: Users, label: "Customers", path: "/admin/customers" },
     { icon: Star, label: "Reviews", path: "/admin/reviews" },
     { icon: FileText, label: "Content", path: "/admin/content" },
+    { icon: FileText, label: "Marquee Banner", path: "/admin/marquee-banner" },
     { icon: Tag, label: "Coupons", path: "/admin/coupons" },
     { icon: PieChart, label: "Coupon Analytics", path: "/admin/coupon-analytics" },
     { icon: History, label: "Activity Log", path: "/admin/activity-log" },

@@ -37,6 +37,7 @@ import PaymentAnalytics from "./pages/admin/PaymentAnalytics";
 import CouponAnalytics from "./pages/admin/CouponAnalytics";
 import ActivityLog from "./pages/admin/ActivityLog";
 import RoleManagement from "./pages/admin/RoleManagement";
+import MarqueeBannerAdmin from "./pages/admin/MarqueeBanner";
 
 const queryClient = new QueryClient();
 
@@ -139,6 +140,7 @@ const App = () => (
             <Route path="activity-log" element={<ActivityLog />} />
             <Route path="role-management" element={<RoleManagement />} />
             <Route path="content" element={<AdminContentManagement />} />
+            <Route path="marquee-banner" element={<MarqueeBannerAdmin />} />
             <Route path="analytics" element={<AdminAnalytics />} />
             <Route path="payment-analytics" element={<PaymentAnalytics />} />
             <Route path="settings" element={<AdminSettings />} />
