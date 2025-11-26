@@ -96,10 +96,13 @@ export default function MarqueeBannerAdmin() {
           <div className="bg-muted p-4 rounded-md">
             <p className="text-sm font-medium mb-2">Preview:</p>
             <div className="bg-primary text-primary-foreground py-2 overflow-hidden rounded">
-              <div className="animate-marquee whitespace-nowrap">
-                <span className="mx-4">{content || "Your text here..."}</span>
-                <span className="mx-4">{content || "Your text here..."}</span>
-                <span className="mx-4">{content || "Your text here..."}</span>
+              <div className="flex animate-marquee">
+                <span className="flex-shrink-0 px-4">{content || "Your text here..."}</span>
+                <span className="flex-shrink-0 px-4">{content || "Your text here..."}</span>
+                <span className="flex-shrink-0 px-4">{content || "Your text here..."}</span>
+                <span className="flex-shrink-0 px-4">{content || "Your text here..."}</span>
+                <span className="flex-shrink-0 px-4">{content || "Your text here..."}</span>
+                <span className="flex-shrink-0 px-4">{content || "Your text here..."}</span>
               </div>
             </div>
           </div>
