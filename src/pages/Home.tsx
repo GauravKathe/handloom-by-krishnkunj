@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { SaleBanner } from "@/components/SaleBanner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
@@ -116,7 +115,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <SaleBanner />
       <Navbar />
 
       <main className="flex-1">
