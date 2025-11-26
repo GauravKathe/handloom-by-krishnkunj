@@ -22,7 +22,7 @@
   }
 
   .animate-marquee-slow {
-    animation: marquee-slow 30s linear infinite;
+    animation: marquee-slow 12s linear infinite;
   }
 }
 
