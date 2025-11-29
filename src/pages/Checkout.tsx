@@ -345,13 +345,16 @@ export default function Checkout() {
 
       if (orderError) throw orderError;
 
-      // Insert order items
+      // Insert order items with product snapshot
       const orderItems = cartItems.map(item => ({
         order_id: order.id,
         product_id: item.product_id,
         quantity: item.quantity,
         price: calculateItemTotal(item),
-        selected_add_ons: item.selected_add_ons || []
+        selected_add_ons: item.selected_add_ons || [],
+        product_name: item.products?.name || '',
+        product_image: item.products?.images?.[0] || '',
+        product_description: item.products?.description || ''
       }));
 
       const { error: itemsError } = await supabase
