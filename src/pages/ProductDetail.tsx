@@ -334,7 +334,7 @@ export default function ProductDetail() {
 
                   {/* Image Container */}
                   <div 
-                    className="flex-1 flex items-center justify-center overflow-hidden cursor-move"
+                    className="flex-1 flex items-center justify-center overflow-hidden p-16"
                     onMouseDown={handleMouseDown}
                     onMouseMove={handleMouseMove}
                     onMouseUp={handleMouseUp}
@@ -349,7 +349,7 @@ export default function ProductDetail() {
                     <img
                       src={zoomedImage || ""}
                       alt="Zoomed product"
-                      className="max-w-none transition-transform duration-200"
+                      className="max-w-full max-h-full object-contain transition-transform duration-200"
                       style={{
                         transform: `scale(${zoomLevel}) translate(${position.x / zoomLevel}px, ${position.y / zoomLevel}px)`,
                         transformOrigin: 'center center'
@@ -362,7 +362,7 @@ export default function ProductDetail() {
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
                     <div className="text-center text-white/80 text-sm">
                       <p className="hidden md:block">Use zoom controls to enlarge • Click and drag to pan when zoomed</p>
-                      <p className="md:hidden">Pinch to zoom • Drag to pan</p>
+                      <p className="md:hidden">Use zoom buttons • Drag to pan when zoomed</p>
                     </div>
                   </div>
                 </div>
