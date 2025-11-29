@@ -175,7 +175,10 @@ export type Database = {
           id: string
           order_id: string
           price: number
+          product_description: string | null
           product_id: string
+          product_image: string | null
+          product_name: string | null
           quantity: number
           selected_add_ons: string[] | null
         }
@@ -184,7 +187,10 @@ export type Database = {
           id?: string
           order_id: string
           price: number
+          product_description?: string | null
           product_id: string
+          product_image?: string | null
+          product_name?: string | null
           quantity: number
           selected_add_ons?: string[] | null
         }
@@ -193,7 +199,10 @@ export type Database = {
           id?: string
           order_id?: string
           price?: number
+          product_description?: string | null
           product_id?: string
+          product_image?: string | null
+          product_name?: string | null
           quantity?: number
           selected_add_ons?: string[] | null
         }

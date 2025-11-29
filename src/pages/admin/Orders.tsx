@@ -117,7 +117,7 @@ export default function AdminOrders() {
           itemsExportData.push({
             'Order ID': order.id,
             'Customer Name': order.profiles?.full_name || 'Unknown',
-            'Product Name': item.products?.name || 'N/A',
+            'Product Name': item.product_name || item.products?.name || 'N/A',
             'Quantity': item.quantity,
             'Price': `₹${Number(item.price).toLocaleString()}`,
             'Order Date': new Date(order.created_at).toLocaleDateString()
@@ -322,31 +322,44 @@ export default function AdminOrders() {
               <div>
                 <h3 className="font-semibold mb-2">Order Items</h3>
                 <div className="space-y-3">
-                  {selectedOrder.order_items?.map((item: any) => (
-                    <div key={item.id} className="flex items-start gap-4 p-3 border rounded-lg bg-card">
-                      <div className="w-24 h-24 bg-muted rounded-lg flex-shrink-0 overflow-hidden">
-                        {item.products?.images?.[0] ? (
-                          <img 
-                            src={item.products.images[0]} 
-                            alt={item.products.name} 
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                            No Image
+                  {selectedOrder.order_items?.map((item: any) => {
+                    // Use snapshot data if product is deleted, otherwise use current product data
+                    const productName = item.product_name || item.products?.name || 'Product Unavailable';
+                    const productImage = item.product_image || item.products?.images?.[0];
+                    const isProductDeleted = !item.products;
+                    
+                    return (
+                      <div key={item.id} className="flex items-start gap-4 p-3 border rounded-lg bg-card">
+                        <div className="w-24 h-24 bg-muted rounded-lg flex-shrink-0 overflow-hidden">
+                          {productImage ? (
+                            <img 
+                              src={productImage} 
+                              alt={productName} 
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                              No Image
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-base mb-1">
+                            {productName}
+                            {isProductDeleted && (
+                              <span className="ml-2 text-xs bg-muted text-muted-foreground px-2 py-1 rounded">
+                                Product Deleted
+                              </span>
+                            )}
+                          </p>
+                          <div className="space-y-1 text-sm text-muted-foreground">
+                            <p>Quantity: <span className="font-medium text-foreground">{item.quantity}</span></p>
+                            <p>Price at Purchase: <span className="font-medium text-foreground">₹{Number(item.price).toLocaleString()}</span></p>
                           </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-base mb-1">{item.products?.name || 'Product Name'}</p>
-                        <div className="space-y-1 text-sm text-muted-foreground">
-                          <p>Quantity: <span className="font-medium text-foreground">{item.quantity}</span></p>
-                          <p>Unit Price: <span className="font-medium text-foreground">₹{Number(item.products?.price || item.price).toLocaleString()}</span></p>
-                          <p>Subtotal: <span className="font-medium text-foreground">₹{(Number(item.price) * item.quantity).toLocaleString()}</span></p>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
