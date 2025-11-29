@@ -204,24 +204,6 @@ export default function AdminProducts() {
 
   const handleDelete = async (id: string) => {
     try {
-      // Check if product is in any orders
-      const { data: orderItems } = await supabase
-        .from("order_items")
-        .select("id")
-        .eq("product_id", id)
-        .limit(1);
-
-      if (orderItems && orderItems.length > 0) {
-        toast({ 
-          title: "Cannot delete product", 
-          description: "This product is part of existing orders and cannot be deleted.",
-          variant: "destructive" 
-        });
-        setDeleteDialogOpen(false);
-        setProductToDelete(null);
-        return;
-      }
-
       const { error } = await supabase.from("products").delete().eq("id", id);
       
       if (error) {
@@ -251,73 +233,29 @@ export default function AdminProducts() {
 
   const handleBulkDelete = async () => {
     try {
-      // First, check which products have order items
-      const { data: orderItems } = await supabase
-        .from("order_items")
-        .select("product_id")
-        .in("product_id", selectedProducts);
-
-      const productsInOrders = new Set(orderItems?.map(item => item.product_id) || []);
-      const productsToDelete = selectedProducts.filter(id => !productsInOrders.has(id));
-      const productsBlocked = selectedProducts.filter(id => productsInOrders.has(id));
-
-      if (productsBlocked.length > 0 && productsToDelete.length === 0) {
-        // All products are in orders
-        const blockedNames = products
-          .filter(p => productsBlocked.includes(p.id))
-          .map(p => p.name)
-          .join(", ");
-        
+      const { error } = await supabase
+        .from("products")
+        .delete()
+        .in("id", selectedProducts);
+      
+      if (error) {
+        console.error("Bulk delete error:", error);
         toast({ 
-          title: "Cannot delete products", 
-          description: `These products are part of existing orders and cannot be deleted: ${blockedNames}`,
+          title: "Error deleting products", 
+          description: error.message,
           variant: "destructive" 
         });
-        setBulkDeleteDialogOpen(false);
         return;
       }
 
-      if (productsBlocked.length > 0) {
-        // Some products can be deleted, some cannot
-        const blockedNames = products
-          .filter(p => productsBlocked.includes(p.id))
-          .map(p => p.name)
-          .join(", ");
-        
-        toast({ 
-          title: "Some products skipped", 
-          description: `These products are in orders and were not deleted: ${blockedNames}`,
-          variant: "destructive" 
-        });
-      }
-
-      if (productsToDelete.length > 0) {
-        const { error } = await supabase
-          .from("products")
-          .delete()
-          .in("id", productsToDelete);
-        
-        if (error) {
-          console.error("Bulk delete error:", error);
-          toast({ 
-            title: "Error deleting products", 
-            description: error.message,
-            variant: "destructive" 
-          });
-          return;
-        }
-
-        // Immediately update local state
-        setProducts(products.filter(p => !productsToDelete.includes(p.id)));
-        setSelectedProducts([]);
-        setBulkDeleteDialogOpen(false);
-        toast({ 
-          title: "Products deleted successfully",
-          description: `${productsToDelete.length} product(s) deleted`
-        });
-      } else {
-        setBulkDeleteDialogOpen(false);
-      }
+      // Immediately update local state
+      setProducts(products.filter(p => !selectedProducts.includes(p.id)));
+      setSelectedProducts([]);
+      setBulkDeleteDialogOpen(false);
+      toast({ 
+        title: "Products deleted successfully",
+        description: `${selectedProducts.length} product(s) deleted`
+      });
     } catch (error: any) {
       console.error("Bulk delete error:", error);
       toast({ 
