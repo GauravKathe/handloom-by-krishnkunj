@@ -20,7 +20,30 @@ export default function Shop() {
 
   useEffect(() => {
     loadCategories();
+  }, []);
+
+  useEffect(() => {
     loadProducts();
+
+    // Real-time subscription for product changes
+    const channel = supabase
+      .channel('shop-products-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'products'
+        },
+        () => {
+          loadProducts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [selectedCategory, priceRange, selectedColors, availableOnly, searchParams]);
 
   const loadCategories = async () => {

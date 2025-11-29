@@ -36,6 +36,26 @@ export default function AdminProducts() {
 
   useEffect(() => {
     loadData();
+
+    // Real-time subscription for product changes
+    const channel = supabase
+      .channel('products-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'products'
+        },
+        () => {
+          loadData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadData = async () => {
@@ -180,11 +200,28 @@ export default function AdminProducts() {
     if (!confirm("Are you sure you want to delete this product?")) return;
 
     try {
-      await supabase.from("products").delete().eq("id", id);
+      const { error } = await supabase.from("products").delete().eq("id", id);
+      
+      if (error) {
+        console.error("Delete error:", error);
+        toast({ 
+          title: "Error deleting product", 
+          description: error.message,
+          variant: "destructive" 
+        });
+        return;
+      }
+
+      // Immediately update local state
+      setProducts(products.filter(p => p.id !== id));
       toast({ title: "Product deleted successfully" });
-      loadData();
-    } catch (error) {
-      toast({ title: "Error deleting product", variant: "destructive" });
+    } catch (error: any) {
+      console.error("Delete error:", error);
+      toast({ 
+        title: "Error deleting product", 
+        description: error.message,
+        variant: "destructive" 
+      });
     }
   };
 
