@@ -7,6 +7,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Trash2, Plus } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function ContentManagement() {
   const [loading, setLoading] = useState(true);
@@ -22,6 +32,7 @@ export default function ContentManagement() {
     description: "",
     image: null as File | null,
   });
+  const [categoryToDelete, setCategoryToDelete] = useState<any | null>(null);
 
   useEffect(() => {
     loadContent();
@@ -236,6 +247,7 @@ export default function ContentManagement() {
       toast({ title: "Category deleted successfully" });
       loadCategories();
     }
+    setCategoryToDelete(null);
   };
 
   if (loading) {
@@ -352,24 +364,25 @@ export default function ContentManagement() {
 
           {/* Existing Categories */}
           <div>
-            <h3 className="font-semibold mb-4">Existing Categories</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <h3 className="font-semibold mb-4">Existing Categories ({categories.length})</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-h-[600px] overflow-y-auto pr-2">
               {categories.map((category) => (
-                <Card key={category.id}>
-                  <CardContent className="p-4">
+                <Card key={category.id} className="flex flex-col">
+                  <CardContent className="p-4 flex flex-col h-full">
                     <img
                       src={category.image_url || "/placeholder.svg"}
                       alt={category.name}
-                      className="w-full h-32 object-cover rounded-lg mb-3"
+                      className="w-full h-40 object-cover rounded-lg mb-3"
                     />
-                    <h4 className="font-semibold mb-1">{category.name}</h4>
+                    <h4 className="font-semibold mb-1 line-clamp-2">{category.name}</h4>
                     {category.description && (
-                      <p className="text-sm text-muted-foreground mb-3">{category.description}</p>
+                      <p className="text-sm text-muted-foreground mb-3 line-clamp-2 flex-grow">{category.description}</p>
                     )}
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() => deleteCategory(category.id)}
+                      className="w-full mt-auto"
+                      onClick={() => setCategoryToDelete(category)}
                     >
                       <Trash2 className="h-3 w-3 mr-1" />
                       Delete
@@ -381,6 +394,49 @@ export default function ContentManagement() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!categoryToDelete} onOpenChange={() => setCategoryToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Category</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>Are you sure you want to delete this category? This action cannot be undone.</p>
+              {categoryToDelete && (
+                <div className="mt-4 p-4 border rounded-lg bg-muted/50 space-y-2">
+                  <div className="flex items-start gap-3">
+                    <img
+                      src={categoryToDelete.image_url || "/placeholder.svg"}
+                      alt={categoryToDelete.name}
+                      className="w-20 h-20 object-cover rounded"
+                    />
+                    <div className="flex-1">
+                      <p className="font-semibold text-foreground">{categoryToDelete.name}</p>
+                      {categoryToDelete.description && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {categoryToDelete.description}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Created: {new Date(categoryToDelete.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => categoryToDelete && deleteCategory(categoryToDelete.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Category
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
