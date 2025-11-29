@@ -190,29 +190,32 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-            {categories.map((category) => (
-              <Link
-                key={category.id}
-                to={`/shop?category=${category.id}`}
-                className="group"
-              >
-                <div className="flex flex-col items-center">
-                  <div className="aspect-square w-full rounded-full overflow-hidden bg-gradient-to-br from-secondary/20 to-primary/20 hover:shadow-lg transition-all duration-300 hover:scale-105">
-                    <img
-                      src={categoryImages[category.name] || category.image_url || "/placeholder.svg"}
-                      alt={category.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                    />
+          <div className="relative overflow-hidden">
+            <div className="flex gap-6 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory scrollbar-hide">
+              {categories.map((category) => (
+                <Link
+                  key={category.id}
+                  to={`/shop?category=${category.id}`}
+                  className="group flex-shrink-0 snap-start"
+                  style={{ width: 'calc(20% - 19.2px)' }}
+                >
+                  <div className="flex flex-col items-center">
+                    <div className="aspect-square w-full rounded-full overflow-hidden bg-gradient-to-br from-secondary/20 to-primary/20 hover:shadow-lg transition-all duration-300 hover:scale-105">
+                      <img
+                        src={categoryImages[category.name] || category.image_url || "/placeholder.svg"}
+                        alt={category.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      />
+                    </div>
+                    <div className="mt-3 text-center">
+                      <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors text-sm md:text-base">
+                        {category.name}
+                      </h3>
+                    </div>
                   </div>
-                  <div className="mt-3 text-center">
-                    <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                      {category.name}
-                    </h3>
-                  </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              ))}
+            </div>
           </div>
         </section>
 
