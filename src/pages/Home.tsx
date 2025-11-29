@@ -196,8 +196,7 @@ export default function Home() {
                 <Link
                   key={category.id}
                   to={`/shop?category=${category.id}`}
-                  className="group flex-shrink-0 snap-start"
-                  style={{ width: 'calc(20% - 19.2px)' }}
+                  className="group flex-shrink-0 snap-start w-[calc(50%-12px)] md:w-[calc(33.333%-16px)] lg:w-[calc(20%-19.2px)]"
                 >
                   <div className="flex flex-col items-center">
                     <div className="aspect-square w-full rounded-full overflow-hidden bg-gradient-to-br from-secondary/20 to-primary/20 hover:shadow-lg transition-all duration-300 hover:scale-105">
