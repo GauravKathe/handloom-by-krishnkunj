@@ -16,7 +16,7 @@ export default function Shop() {
   const [selectedCategory, setSelectedCategory] = useState<string>(searchParams.get("category") || "all");
   const [priceRange, setPriceRange] = useState([0, 500000]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
-  const [availableOnly, setAvailableOnly] = useState(true);
+  const [availableOnly, setAvailableOnly] = useState(false);
 
   useEffect(() => {
     loadCategories();
