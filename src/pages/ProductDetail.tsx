@@ -9,7 +9,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { ShoppingCart, ZoomIn } from "lucide-react";
+import { ShoppingCart, ZoomIn, ZoomOut, X, Maximize2 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 export default function ProductDetail() {
@@ -22,6 +22,10 @@ export default function ProductDetail() {
   const [similarProducts, setSimilarProducts] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     // Scroll to top when product changes
@@ -63,6 +67,80 @@ export default function ProductDetail() {
       .limit(4);
 
     setSimilarProducts(data || []);
+  };
+
+  const openZoom = (image: string) => {
+    setZoomedImage(image);
+    setZoomLevel(1);
+    setPosition({ x: 0, y: 0 });
+  };
+
+  const closeZoom = () => {
+    setZoomedImage(null);
+    setZoomLevel(1);
+    setPosition({ x: 0, y: 0 });
+  };
+
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 0.5, 4));
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 0.5, 1));
+    if (zoomLevel <= 1.5) {
+      setPosition({ x: 0, y: 0 });
+    }
+  };
+
+  const handleResetZoom = () => {
+    setZoomLevel(1);
+    setPosition({ x: 0, y: 0 });
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (zoomLevel > 1) {
+      setIsDragging(true);
+      setDragStart({
+        x: e.clientX - position.x,
+        y: e.clientY - position.y
+      });
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging && zoomLevel > 1) {
+      setPosition({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (zoomLevel > 1 && e.touches.length === 1) {
+      setIsDragging(true);
+      setDragStart({
+        x: e.touches[0].clientX - position.x,
+        y: e.touches[0].clientY - position.y
+      });
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (isDragging && zoomLevel > 1 && e.touches.length === 1) {
+      setPosition({
+        x: e.touches[0].clientX - dragStart.x,
+        y: e.touches[0].clientY - dragStart.y
+      });
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
   };
 
   const handleAddToCart = async () => {
@@ -180,16 +258,21 @@ export default function ProductDetail() {
                 {(product.images || ["/placeholder.svg"]).map((image: string, index: number) => (
                   <CarouselItem key={index}>
                     <div 
-                      className="relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-secondary/10 to-primary/10 group cursor-zoom-in"
-                      onClick={() => setZoomedImage(image)}
+                      className="relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-secondary/10 to-primary/10 group cursor-pointer"
+                      onClick={() => openZoom(image)}
                     >
                       <img
                         src={image}
                         alt={`${product.name} - Image ${index + 1}`}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors duration-300">
-                        <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <div className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <Maximize2 className="w-5 h-5 text-foreground" />
+                      </div>
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/10 transition-colors duration-300">
+                        <div className="text-background/0 group-hover:text-background/90 text-sm font-medium transition-colors duration-300">
+                          Click to view full size
+                        </div>
                       </div>
                     </div>
                   </CarouselItem>
@@ -199,15 +282,89 @@ export default function ProductDetail() {
               <CarouselNext className="right-4" />
             </Carousel>
 
-            {/* Zoom Dialog */}
-            <Dialog open={!!zoomedImage} onOpenChange={() => setZoomedImage(null)}>
-              <DialogContent className="max-w-7xl w-full h-[90vh] p-0 overflow-hidden">
-                <div className="relative w-full h-full overflow-auto bg-black/95">
-                  <img
-                    src={zoomedImage || ""}
-                    alt="Zoomed product"
-                    className="w-full h-full object-contain"
-                  />
+            {/* Zoom Modal */}
+            <Dialog open={!!zoomedImage} onOpenChange={closeZoom}>
+              <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 bg-black border-0">
+                <div className="relative w-full h-full flex flex-col">
+                  {/* Header with Controls */}
+                  <div className="absolute top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/80 to-transparent p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={handleZoomIn}
+                          className="bg-background/20 hover:bg-background/30 text-white"
+                          disabled={zoomLevel >= 4}
+                        >
+                          <ZoomIn className="h-5 w-5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={handleZoomOut}
+                          className="bg-background/20 hover:bg-background/30 text-white"
+                          disabled={zoomLevel <= 1}
+                        >
+                          <ZoomOut className="h-5 w-5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleResetZoom}
+                          className="bg-background/20 hover:bg-background/30 text-white"
+                          disabled={zoomLevel === 1}
+                        >
+                          Reset
+                        </Button>
+                        <span className="text-white text-sm ml-2">
+                          {Math.round(zoomLevel * 100)}%
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={closeZoom}
+                        className="bg-background/20 hover:bg-background/30 text-white"
+                      >
+                        <X className="h-5 w-5" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Image Container */}
+                  <div 
+                    className="flex-1 flex items-center justify-center overflow-hidden cursor-move"
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                    style={{
+                      cursor: zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default'
+                    }}
+                  >
+                    <img
+                      src={zoomedImage || ""}
+                      alt="Zoomed product"
+                      className="max-w-none transition-transform duration-200"
+                      style={{
+                        transform: `scale(${zoomLevel}) translate(${position.x / zoomLevel}px, ${position.y / zoomLevel}px)`,
+                        transformOrigin: 'center center'
+                      }}
+                      draggable={false}
+                    />
+                  </div>
+
+                  {/* Bottom Instructions */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                    <div className="text-center text-white/80 text-sm">
+                      <p className="hidden md:block">Use zoom controls to enlarge • Click and drag to pan when zoomed</p>
+                      <p className="md:hidden">Pinch to zoom • Drag to pan</p>
+                    </div>
+                  </div>
                 </div>
               </DialogContent>
             </Dialog>
