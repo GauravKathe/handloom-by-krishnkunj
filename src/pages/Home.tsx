@@ -90,7 +90,6 @@ export default function Home() {
     const { data: productsData } = await supabase
       .from("products")
       .select("*")
-      .eq("available", true)
       .limit(6);
 
     setCategories(categoriesData || []);

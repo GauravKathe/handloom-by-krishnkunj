@@ -9,7 +9,8 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, ZoomIn } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -20,6 +21,7 @@ export default function ProductDetail() {
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [similarProducts, setSimilarProducts] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
   useEffect(() => {
     // Scroll to top when product changes
@@ -58,7 +60,6 @@ export default function ProductDetail() {
       .select("*")
       .eq("category_id", categoryId)
       .neq("id", id)
-      .eq("available", true)
       .limit(4);
 
     setSimilarProducts(data || []);
@@ -178,12 +179,18 @@ export default function ProductDetail() {
               <CarouselContent>
                 {(product.images || ["/placeholder.svg"]).map((image: string, index: number) => (
                   <CarouselItem key={index}>
-                    <div className="aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-secondary/10 to-primary/10">
+                    <div 
+                      className="relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-secondary/10 to-primary/10 group cursor-zoom-in"
+                      onClick={() => setZoomedImage(image)}
+                    >
                       <img
                         src={image}
                         alt={`${product.name} - Image ${index + 1}`}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                       />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors duration-300">
+                        <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      </div>
                     </div>
                   </CarouselItem>
                 ))}
@@ -191,12 +198,30 @@ export default function ProductDetail() {
               <CarouselPrevious className="left-4" />
               <CarouselNext className="right-4" />
             </Carousel>
+
+            {/* Zoom Dialog */}
+            <Dialog open={!!zoomedImage} onOpenChange={() => setZoomedImage(null)}>
+              <DialogContent className="max-w-7xl w-full h-[90vh] p-0 overflow-hidden">
+                <div className="relative w-full h-full overflow-auto bg-black/95">
+                  <img
+                    src={zoomedImage || ""}
+                    alt="Zoomed product"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
 
           {/* Product Details */}
           <div className="space-y-6">
             <div>
               <div className="flex gap-2 mb-3">
+                {!product.available && (
+                  <Badge variant="destructive" className="text-base px-3 py-1">
+                    Currently Unavailable
+                  </Badge>
+                )}
                 {product.is_new_arrival && (
                   <Badge className="bg-secondary">New Arrival</Badge>
                 )}
@@ -278,6 +303,12 @@ export default function ProductDetail() {
 
             {/* Action Buttons */}
             <div className="space-y-3">
+              {!product.available && (
+                <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 text-center">
+                  <p className="text-destructive font-semibold mb-1">This product is currently unavailable</p>
+                  <p className="text-sm text-muted-foreground">Please check back later or explore similar products below</p>
+                </div>
+              )}
               <Button
                 size="lg"
                 className="w-full"
@@ -285,7 +316,7 @@ export default function ProductDetail() {
                 disabled={!product.available}
               >
                 <ShoppingCart className="mr-2 h-5 w-5" />
-                Add to Cart
+                {product.available ? 'Add to Cart' : 'Out of Stock'}
               </Button>
               <Button
                 size="lg"
