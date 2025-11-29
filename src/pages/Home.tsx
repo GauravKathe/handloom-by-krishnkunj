@@ -34,7 +34,7 @@ export default function Home() {
     loadData();
     loadHeroContent();
 
-    // Set up realtime listeners for content and categories
+    // Set up realtime listeners for content, categories, and products
     const channel = supabase
       .channel('homepage-changes')
       .on(
@@ -55,6 +55,17 @@ export default function Home() {
           event: '*',
           schema: 'public',
           table: 'categories'
+        },
+        () => {
+          loadData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'products'
         },
         () => {
           loadData();

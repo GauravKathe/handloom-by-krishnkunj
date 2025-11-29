@@ -9,6 +9,26 @@ export default function BestSellers() {
 
   useEffect(() => {
     loadProducts();
+
+    // Real-time subscription for product changes
+    const channel = supabase
+      .channel('best-sellers-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'products'
+        },
+        () => {
+          loadProducts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadProducts = async () => {
