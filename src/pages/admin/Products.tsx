@@ -5,11 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Search, Edit, Trash2, Package, Upload, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 
 export default function AdminProducts() {
   const [products, setProducts] = useState<any[]>([]);
@@ -19,6 +21,10 @@ export default function AdminProducts() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<any>(null);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -197,8 +203,6 @@ export default function AdminProducts() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this product?")) return;
-
     try {
       const { error } = await supabase.from("products").delete().eq("id", id);
       
@@ -214,6 +218,8 @@ export default function AdminProducts() {
 
       // Immediately update local state
       setProducts(products.filter(p => p.id !== id));
+      setDeleteDialogOpen(false);
+      setProductToDelete(null);
       toast({ title: "Product deleted successfully" });
     } catch (error: any) {
       console.error("Delete error:", error);
@@ -222,6 +228,62 @@ export default function AdminProducts() {
         description: error.message,
         variant: "destructive" 
       });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      const { error } = await supabase
+        .from("products")
+        .delete()
+        .in("id", selectedProducts);
+      
+      if (error) {
+        console.error("Bulk delete error:", error);
+        toast({ 
+          title: "Error deleting products", 
+          description: error.message,
+          variant: "destructive" 
+        });
+        return;
+      }
+
+      // Immediately update local state
+      setProducts(products.filter(p => !selectedProducts.includes(p.id)));
+      setSelectedProducts([]);
+      setBulkDeleteDialogOpen(false);
+      toast({ 
+        title: "Products deleted successfully",
+        description: `${selectedProducts.length} product(s) deleted`
+      });
+    } catch (error: any) {
+      console.error("Bulk delete error:", error);
+      toast({ 
+        title: "Error deleting products", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    }
+  };
+
+  const openDeleteDialog = (product: any) => {
+    setProductToDelete(product);
+    setDeleteDialogOpen(true);
+  };
+
+  const toggleProductSelection = (productId: string) => {
+    setSelectedProducts(prev => 
+      prev.includes(productId) 
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedProducts.length === filteredProducts.length) {
+      setSelectedProducts([]);
+    } else {
+      setSelectedProducts(filteredProducts.map(p => p.id));
     }
   };
 
@@ -256,7 +318,17 @@ export default function AdminProducts() {
           <h1 className="text-3xl font-bold">Product Management</h1>
           <p className="text-muted-foreground">Manage your saree inventory</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <div className="flex gap-2">
+          {selectedProducts.length > 0 && (
+            <Button 
+              variant="destructive" 
+              onClick={() => setBulkDeleteDialogOpen(true)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete {selectedProducts.length} Selected
+            </Button>
+          )}
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={resetForm}>
               <Plus className="mr-2 h-4 w-4" />
@@ -417,7 +489,8 @@ export default function AdminProducts() {
               </div>
             </form>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       <Card>
@@ -437,6 +510,12 @@ export default function AdminProducts() {
             <table className="w-full">
               <thead>
                 <tr className="border-b">
+                  <th className="text-left p-2 w-12">
+                    <Checkbox
+                      checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </th>
                   <th className="text-left p-2">Product</th>
                   <th className="text-left p-2">Category</th>
                   <th className="text-left p-2">Price</th>
@@ -447,6 +526,12 @@ export default function AdminProducts() {
               <tbody>
                 {filteredProducts.map((product) => (
                   <tr key={product.id} className="border-b hover:bg-muted/50">
+                    <td className="p-2">
+                      <Checkbox
+                        checked={selectedProducts.includes(product.id)}
+                        onCheckedChange={() => toggleProductSelection(product.id)}
+                      />
+                    </td>
                     <td className="p-2">
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded bg-muted flex items-center justify-center">
@@ -474,7 +559,7 @@ export default function AdminProducts() {
                         <Button variant="ghost" size="icon" onClick={() => handleEdit(product)}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(product.id)}>
+                        <Button variant="ghost" size="icon" onClick={() => openDeleteDialog(product)}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
@@ -486,6 +571,107 @@ export default function AdminProducts() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Product</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this product? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          {productToDelete && (
+            <div className="my-4 p-4 border rounded-lg space-y-3">
+              <div className="flex items-start gap-3">
+                {productToDelete.images?.[0] ? (
+                  <img 
+                    src={productToDelete.images[0]} 
+                    alt={productToDelete.name}
+                    className="w-20 h-20 object-cover rounded"
+                  />
+                ) : (
+                  <div className="w-20 h-20 bg-muted rounded flex items-center justify-center">
+                    <Package className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <h4 className="font-semibold">{productToDelete.name}</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {productToDelete.categories?.name || "Uncategorized"}
+                  </p>
+                  <p className="text-sm font-medium mt-1">
+                    ₹{Number(productToDelete.price).toLocaleString()}
+                  </p>
+                  {productToDelete.fabric && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Fabric: {productToDelete.fabric}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setProductToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => productToDelete && handleDelete(productToDelete.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Product
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Multiple Products</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedProducts.length} product(s)? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="my-4 p-4 border rounded-lg max-h-60 overflow-y-auto">
+            <p className="text-sm font-medium mb-2">Products to be deleted:</p>
+            <ul className="space-y-2">
+              {products
+                .filter(p => selectedProducts.includes(p.id))
+                .map(product => (
+                  <li key={product.id} className="flex items-center gap-2 text-sm">
+                    <div className="w-8 h-8 rounded overflow-hidden bg-muted flex-shrink-0">
+                      {product.images?.[0] ? (
+                        <img 
+                          src={product.images[0]} 
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Package className="w-full h-full p-1 text-muted-foreground" />
+                      )}
+                    </div>
+                    <span className="flex-1">{product.name}</span>
+                    <span className="text-muted-foreground">₹{Number(product.price).toLocaleString()}</span>
+                  </li>
+                ))}
+            </ul>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete {selectedProducts.length} Product(s)
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
