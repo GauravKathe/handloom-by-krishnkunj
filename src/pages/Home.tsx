@@ -240,27 +240,27 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="relative overflow-hidden">
+          <div className="relative overflow-hidden px-12">
             {/* Navigation Arrows */}
             {categories.length > itemsPerPage && (
               <>
                 <Button
                   variant="outline"
                   size="icon"
-                  className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-background/95 hover:bg-background shadow-lg"
+                  className="absolute left-0 top-[40%] -translate-y-1/2 z-10 bg-background hover:bg-primary hover:text-primary-foreground shadow-xl border-2"
                   onClick={scrollLeft}
                   disabled={currentPage === 0}
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="h-5 w-5" />
                 </Button>
                 <Button
                   variant="outline"
                   size="icon"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-background/95 hover:bg-background shadow-lg"
+                  className="absolute right-0 top-[40%] -translate-y-1/2 z-10 bg-background hover:bg-primary hover:text-primary-foreground shadow-xl border-2"
                   onClick={scrollRight}
                   disabled={currentPage === totalPages - 1}
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-5 w-5" />
                 </Button>
               </>
             )}
@@ -296,15 +296,15 @@ export default function Home() {
 
             {/* Scroll Indicators (Dots) */}
             {categories.length > itemsPerPage && (
-              <div className="flex justify-center gap-2 mt-4">
+              <div className="flex justify-center gap-2 mt-6">
                 {Array.from({ length: totalPages }).map((_, index) => (
                   <button
                     key={index}
                     onClick={() => scrollToPage(index)}
-                    className={`h-2 rounded-full transition-all duration-300 ${
+                    className={`h-3 rounded-full transition-all duration-300 ${
                       currentPage === index 
-                        ? 'w-8 bg-primary' 
-                        : 'w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50'
+                        ? 'w-10 bg-primary shadow-md' 
+                        : 'w-3 bg-muted-foreground/40 hover:bg-muted-foreground/70'
                     }`}
                     aria-label={`Go to page ${index + 1}`}
                   />
