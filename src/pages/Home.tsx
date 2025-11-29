@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import heroImage1 from "@/assets/saree-hero-1.jpg";
 import heroImage2 from "@/assets/saree-hero-2.jpg";
 import heroImage3 from "@/assets/saree-hero-3.jpg";
@@ -21,6 +22,8 @@ export default function Home() {
   const [categories, setCategories] = useState<any[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [heroContent, setHeroContent] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const categoryScrollRef = useRef<HTMLDivElement>(null);
 
   const categoryImages: Record<string, string> = {
     "Banarasi Sarees": categoryBanarasi,
@@ -125,6 +128,53 @@ export default function Home() {
 
   const heroSlides = bannerSlides.length > 0 ? bannerSlides : defaultHeroSlides;
 
+  // Calculate items per page based on screen size
+  const getItemsPerPage = () => {
+    if (typeof window === 'undefined') return 5;
+    if (window.innerWidth < 768) return 2; // mobile
+    if (window.innerWidth < 1024) return 3; // tablet
+    return 5; // desktop
+  };
+
+  const [itemsPerPage, setItemsPerPage] = useState(getItemsPerPage());
+
+  useEffect(() => {
+    const handleResize = () => {
+      setItemsPerPage(getItemsPerPage());
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const totalPages = Math.ceil(categories.length / itemsPerPage);
+
+  const scrollToPage = (page: number) => {
+    if (!categoryScrollRef.current) return;
+    const scrollAmount = categoryScrollRef.current.scrollWidth / totalPages;
+    categoryScrollRef.current.scrollTo({
+      left: scrollAmount * page,
+      behavior: 'smooth'
+    });
+    setCurrentPage(page);
+  };
+
+  const handleScroll = () => {
+    if (!categoryScrollRef.current) return;
+    const scrollLeft = categoryScrollRef.current.scrollLeft;
+    const scrollWidth = categoryScrollRef.current.scrollWidth;
+    const clientWidth = categoryScrollRef.current.clientWidth;
+    const page = Math.round((scrollLeft / (scrollWidth - clientWidth)) * (totalPages - 1));
+    setCurrentPage(page);
+  };
+
+  const scrollLeft = () => {
+    if (currentPage > 0) scrollToPage(currentPage - 1);
+  };
+
+  const scrollRight = () => {
+    if (currentPage < totalPages - 1) scrollToPage(currentPage + 1);
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <MarqueeBanner />
@@ -191,7 +241,35 @@ export default function Home() {
           </div>
 
           <div className="relative overflow-hidden">
-            <div className="flex gap-6 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory scrollbar-hide">
+            {/* Navigation Arrows */}
+            {categories.length > itemsPerPage && (
+              <>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-background/95 hover:bg-background shadow-lg"
+                  onClick={scrollLeft}
+                  disabled={currentPage === 0}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-background/95 hover:bg-background shadow-lg"
+                  onClick={scrollRight}
+                  disabled={currentPage === totalPages - 1}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+
+            <div 
+              ref={categoryScrollRef}
+              onScroll={handleScroll}
+              className="flex gap-6 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory scrollbar-hide"
+            >
               {categories.map((category) => (
                 <Link
                   key={category.id}
@@ -215,6 +293,24 @@ export default function Home() {
                 </Link>
               ))}
             </div>
+
+            {/* Scroll Indicators (Dots) */}
+            {categories.length > itemsPerPage && (
+              <div className="flex justify-center gap-2 mt-4">
+                {Array.from({ length: totalPages }).map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => scrollToPage(index)}
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      currentPage === index 
+                        ? 'w-8 bg-primary' 
+                        : 'w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50'
+                    }`}
+                    aria-label={`Go to page ${index + 1}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
