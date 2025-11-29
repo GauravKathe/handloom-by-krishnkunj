@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Trash2, Plus } from "lucide-react";
+import { Upload, Trash2, Plus, Pencil } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +33,12 @@ export default function ContentManagement() {
     image: null as File | null,
   });
   const [categoryToDelete, setCategoryToDelete] = useState<any | null>(null);
+  const [categoryToEdit, setCategoryToEdit] = useState<any | null>(null);
+  const [editingCategory, setEditingCategory] = useState({
+    name: "",
+    description: "",
+    image: null as File | null,
+  });
 
   useEffect(() => {
     loadContent();
@@ -250,6 +256,81 @@ export default function ContentManagement() {
     setCategoryToDelete(null);
   };
 
+  const openEditDialog = (category: any) => {
+    setCategoryToEdit(category);
+    setEditingCategory({
+      name: category.name,
+      description: category.description || "",
+      image: null,
+    });
+  };
+
+  const updateCategory = async () => {
+    if (!categoryToEdit || !editingCategory.name) {
+      toast({
+        title: "Missing information",
+        description: "Please provide category name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingCategory(true);
+
+    let imageUrl = categoryToEdit.image_url;
+
+    // Upload new image if selected
+    if (editingCategory.image) {
+      const fileExt = editingCategory.image.name.split(".").pop();
+      const fileName = `category-${Date.now()}.${fileExt}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("site-content")
+        .upload(fileName, editingCategory.image);
+
+      if (uploadError) {
+        toast({
+          title: "Error uploading image",
+          description: uploadError.message,
+          variant: "destructive",
+        });
+        setUploadingCategory(false);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from("site-content")
+        .getPublicUrl(uploadData.path);
+
+      imageUrl = urlData.publicUrl;
+    }
+
+    // Update category
+    const { error: updateError } = await supabase
+      .from("categories")
+      .update({
+        name: editingCategory.name,
+        description: editingCategory.description,
+        image_url: imageUrl,
+      })
+      .eq("id", categoryToEdit.id);
+
+    if (updateError) {
+      toast({
+        title: "Error updating category",
+        description: updateError.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({ title: "Category updated successfully" });
+      setCategoryToEdit(null);
+      setEditingCategory({ name: "", description: "", image: null });
+      loadCategories();
+    }
+
+    setUploadingCategory(false);
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center h-64">Loading...</div>;
   }
@@ -378,15 +459,26 @@ export default function ContentManagement() {
                     {category.description && (
                       <p className="text-sm text-muted-foreground mb-3 line-clamp-2 flex-grow">{category.description}</p>
                     )}
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="w-full mt-auto"
-                      onClick={() => setCategoryToDelete(category)}
-                    >
-                      <Trash2 className="h-3 w-3 mr-1" />
-                      Delete
-                    </Button>
+                    <div className="flex gap-2 mt-auto">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => openEditDialog(category)}
+                      >
+                        <Pencil className="h-3 w-3 mr-1" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => setCategoryToDelete(category)}
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Delete
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -433,6 +525,78 @@ export default function ContentManagement() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete Category
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Category Dialog */}
+      <AlertDialog open={!!categoryToEdit} onOpenChange={() => setCategoryToEdit(null)}>
+        <AlertDialogContent className="max-w-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Edit Category</AlertDialogTitle>
+            <AlertDialogDescription>
+              Update category information and image.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-category-name">Category Name</Label>
+                <Input
+                  id="edit-category-name"
+                  placeholder="e.g., Silk Sarees"
+                  value={editingCategory.name}
+                  onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-category-description">Description</Label>
+                <Input
+                  id="edit-category-description"
+                  placeholder="Brief description"
+                  value={editingCategory.description}
+                  onChange={(e) => setEditingCategory({ ...editingCategory, description: e.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="edit-category-image">Category Image (Optional - leave empty to keep current)</Label>
+              <Input
+                id="edit-category-image"
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setEditingCategory({ ...editingCategory, image: file });
+                  }
+                }}
+              />
+              {editingCategory.image && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  New image selected: {editingCategory.image.name}
+                </p>
+              )}
+            </div>
+            {categoryToEdit && (
+              <div className="p-4 border rounded-lg bg-muted/50">
+                <p className="text-sm font-medium mb-2">Current Image:</p>
+                <img
+                  src={categoryToEdit.image_url || "/placeholder.svg"}
+                  alt={categoryToEdit.name}
+                  className="w-32 h-32 object-cover rounded"
+                />
+              </div>
+            )}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={uploadingCategory}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={updateCategory}
+              disabled={uploadingCategory}
+            >
+              {uploadingCategory ? "Updating..." : "Update Category"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

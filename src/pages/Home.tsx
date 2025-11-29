@@ -82,7 +82,7 @@ export default function Home() {
     const { data: categoriesData } = await supabase
       .from("categories")
       .select("*")
-      .limit(5);
+      .order("created_at", { ascending: true });
 
     const { data: productsData } = await supabase
       .from("products")
@@ -190,15 +190,15 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="flex gap-6 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory scrollbar-hide lg:grid lg:grid-cols-5 lg:overflow-visible">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
             {categories.map((category) => (
               <Link
                 key={category.id}
                 to={`/shop?category=${category.id}`}
-                className="group flex-shrink-0 snap-start lg:flex-shrink"
+                className="group"
               >
                 <div className="flex flex-col items-center">
-                  <div className="aspect-square w-32 md:w-40 rounded-full overflow-hidden bg-gradient-to-br from-secondary/20 to-primary/20 hover:shadow-lg transition-all duration-300 hover:scale-105">
+                  <div className="aspect-square w-full rounded-full overflow-hidden bg-gradient-to-br from-secondary/20 to-primary/20 hover:shadow-lg transition-all duration-300 hover:scale-105">
                     <img
                       src={categoryImages[category.name] || category.image_url || "/placeholder.svg"}
                       alt={category.name}
