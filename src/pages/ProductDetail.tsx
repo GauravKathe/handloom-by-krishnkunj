@@ -26,6 +26,11 @@ export default function ProductDetail() {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [initialPinchDistance, setInitialPinchDistance] = useState<number | null>(null);
+  const [initialZoomLevel, setInitialZoomLevel] = useState(1);
+  const [showMagnifier, setShowMagnifier] = useState(false);
+  const [magnifierPos, setMagnifierPos] = useState({ x: 0, y: 0 });
+  const [currentImage, setCurrentImage] = useState<string | null>(null);
 
   useEffect(() => {
     // Scroll to top when product changes
@@ -120,8 +125,21 @@ export default function ProductDetail() {
     setIsDragging(false);
   };
 
+  const getDistance = (touches: React.TouchList) => {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (zoomLevel > 1 && e.touches.length === 1) {
+    if (e.touches.length === 2) {
+      // Pinch gesture
+      const distance = getDistance(e.touches);
+      setInitialPinchDistance(distance);
+      setInitialZoomLevel(zoomLevel);
+      setIsDragging(false);
+    } else if (zoomLevel > 1 && e.touches.length === 1) {
+      // Pan gesture
       setIsDragging(true);
       setDragStart({
         x: e.touches[0].clientX - position.x,
@@ -131,7 +149,19 @@ export default function ProductDetail() {
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (isDragging && zoomLevel > 1 && e.touches.length === 1) {
+    if (e.touches.length === 2 && initialPinchDistance) {
+      // Pinch zoom
+      e.preventDefault();
+      const distance = getDistance(e.touches);
+      const scale = distance / initialPinchDistance;
+      const newZoomLevel = Math.min(Math.max(initialZoomLevel * scale, 1), 4);
+      setZoomLevel(newZoomLevel);
+      
+      if (newZoomLevel <= 1) {
+        setPosition({ x: 0, y: 0 });
+      }
+    } else if (isDragging && zoomLevel > 1 && e.touches.length === 1) {
+      // Pan
       setPosition({
         x: e.touches[0].clientX - dragStart.x,
         y: e.touches[0].clientY - dragStart.y
@@ -141,6 +171,15 @@ export default function ProductDetail() {
 
   const handleTouchEnd = () => {
     setIsDragging(false);
+    setInitialPinchDistance(null);
+  };
+
+  const handleMagnifierMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const elem = e.currentTarget;
+    const { left, top, width, height } = elem.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    setMagnifierPos({ x, y });
   };
 
   const handleAddToCart = async () => {
@@ -260,19 +299,45 @@ export default function ProductDetail() {
                     <div 
                       className="relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-secondary/10 to-primary/10 group cursor-pointer"
                       onClick={() => openZoom(image)}
+                      onMouseEnter={() => {
+                        setShowMagnifier(true);
+                        setCurrentImage(image);
+                      }}
+                      onMouseLeave={() => setShowMagnifier(false)}
+                      onMouseMove={handleMagnifierMove}
                     >
                       <img
                         src={image}
                         alt={`${product.name} - Image ${index + 1}`}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        className="w-full h-full object-cover transition-transform duration-300"
                       />
+                      
+                      {/* Magnifier Lens */}
+                      {showMagnifier && currentImage === image && (
+                        <div
+                          className="hidden md:block absolute w-32 h-32 border-2 border-primary rounded-full pointer-events-none z-10 shadow-lg"
+                          style={{
+                            left: `${magnifierPos.x}%`,
+                            top: `${magnifierPos.y}%`,
+                            transform: 'translate(-50%, -50%)',
+                            backgroundImage: `url(${image})`,
+                            backgroundPosition: `${magnifierPos.x}% ${magnifierPos.y}%`,
+                            backgroundSize: '250%',
+                            backgroundRepeat: 'no-repeat',
+                          }}
+                        />
+                      )}
+
                       <div className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <Maximize2 className="w-5 h-5 text-foreground" />
                       </div>
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/10 transition-colors duration-300">
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/10 transition-colors duration-300 md:hidden">
                         <div className="text-background/0 group-hover:text-background/90 text-sm font-medium transition-colors duration-300">
-                          Click to view full size
+                          Tap to view full size
                         </div>
+                      </div>
+                      <div className="absolute bottom-4 left-4 right-4 text-center text-background/0 group-hover:text-background/90 text-xs transition-colors duration-300 hidden md:block">
+                        Hover to magnify • Click for full view
                       </div>
                     </div>
                   </CarouselItem>
@@ -362,7 +427,7 @@ export default function ProductDetail() {
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
                     <div className="text-center text-white/80 text-sm">
                       <p className="hidden md:block">Use zoom controls to enlarge • Click and drag to pan when zoomed</p>
-                      <p className="md:hidden">Use zoom buttons • Drag to pan when zoomed</p>
+                      <p className="md:hidden">Pinch to zoom • Drag to pan • Use buttons to adjust</p>
                     </div>
                   </div>
                 </div>
