@@ -33,7 +33,7 @@ export default function AdminOrders() {
           profiles(full_name, email, mobile_number, city, state),
           order_items(
             *,
-            products(name, images, price)
+            products(name, images, price, color, fabric)
           )
         `)
         .order("created_at", { ascending: false });
@@ -118,6 +118,8 @@ export default function AdminOrders() {
             'Order ID': order.id,
             'Customer Name': order.profiles?.full_name || 'Unknown',
             'Product Name': item.product_name || item.products?.name || 'N/A',
+            'Color': item.products?.color || 'N/A',
+            'Fabric': item.products?.fabric || 'N/A',
             'Quantity': item.quantity,
             'Price': `₹${Number(item.price).toLocaleString()}`,
             'Order Date': new Date(order.created_at).toLocaleDateString()
@@ -326,6 +328,8 @@ export default function AdminOrders() {
                     // Use snapshot data if product is deleted, otherwise use current product data
                     const productName = item.product_name || item.products?.name || 'Product Unavailable';
                     const productImage = item.product_image || item.products?.images?.[0];
+                    const productColor = item.products?.color || 'N/A';
+                    const productFabric = item.products?.fabric || 'N/A';
                     const isProductDeleted = !item.products;
                     
                     return (
@@ -353,6 +357,8 @@ export default function AdminOrders() {
                             )}
                           </p>
                           <div className="space-y-1 text-sm text-muted-foreground">
+                            <p>Color: <span className="font-medium text-foreground">{productColor}</span></p>
+                            <p>Fabric: <span className="font-medium text-foreground">{productFabric}</span></p>
                             <p>Quantity: <span className="font-medium text-foreground">{item.quantity}</span></p>
                             <p>Price at Purchase: <span className="font-medium text-foreground">₹{Number(item.price).toLocaleString()}</span></p>
                           </div>
