@@ -31,6 +31,7 @@ export default function ProductDetail() {
   const [showMagnifier, setShowMagnifier] = useState(false);
   const [magnifierPos, setMagnifierPos] = useState({ x: 0, y: 0 });
   const [currentImage, setCurrentImage] = useState<string | null>(null);
+  const [isOverIcon, setIsOverIcon] = useState(false);
 
   useEffect(() => {
     // Scroll to top when product changes
@@ -310,21 +311,15 @@ export default function ProductDetail() {
                   <CarouselItem key={index}>
                     <div 
                       className="relative aspect-square rounded-lg overflow-visible bg-gradient-to-br from-secondary/10 to-primary/10 group cursor-pointer touch-none"
-                      onMouseDown={(e) => {
-                        if (e.button === 0) { // Left mouse button
-                          e.preventDefault();
-                          setShowMagnifier(true);
-                          setCurrentImage(image);
-                          handleMagnifierMove(e as any);
-                        }
+                      onMouseEnter={() => {
+                        setShowMagnifier(true);
+                        setCurrentImage(image);
                       }}
-                      onMouseMove={(e) => {
-                        if (showMagnifier && currentImage === image) {
-                          handleMagnifierMove(e);
-                        }
+                      onMouseLeave={() => {
+                        setShowMagnifier(false);
+                        setIsOverIcon(false);
                       }}
-                      onMouseUp={() => setShowMagnifier(false)}
-                      onMouseLeave={() => setShowMagnifier(false)}
+                      onMouseMove={handleMagnifierMove}
                       onTouchStart={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -344,10 +339,10 @@ export default function ProductDetail() {
                         className="w-full h-full object-cover transition-transform duration-300 rounded-lg"
                       />
                       
-                      {/* Magnifier Lens - Works on all devices */}
-                      {showMagnifier && currentImage === image && (
+                      {/* Magnifier Lens - Works on all devices, hides when over icon */}
+                      {showMagnifier && currentImage === image && !isOverIcon && (
                         <div
-                          className="absolute w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 border-2 border-primary rounded-full pointer-events-none z-50 shadow-2xl"
+                          className="absolute w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 border-2 border-primary rounded-full pointer-events-none z-40 shadow-2xl"
                           style={{
                             left: `${magnifierPos.x}%`,
                             top: `${magnifierPos.y}%`,
@@ -360,11 +355,19 @@ export default function ProductDetail() {
                         />
                       )}
 
-                      <div className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" onClick={() => openZoom(image)}>
+                      <div 
+                        className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-50 cursor-pointer" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openZoom(image);
+                        }}
+                        onMouseEnter={() => setIsOverIcon(true)}
+                        onMouseLeave={() => setIsOverIcon(false)}
+                      >
                         <Maximize2 className="w-5 h-5 text-foreground" />
                       </div>
                       <div className="absolute bottom-4 left-4 right-4 text-center text-background/80 text-xs sm:text-sm pointer-events-none">
-                        <p className="hidden md:block">Click & hold to magnify • Click icon for full view</p>
+                        <p className="hidden md:block">Hover to magnify • Click icon for full view</p>
                         <p className="md:hidden">Touch & hold to magnify • Tap icon for zoom</p>
                       </div>
                     </div>
