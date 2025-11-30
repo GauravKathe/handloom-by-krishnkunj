@@ -310,12 +310,21 @@ export default function ProductDetail() {
                   <CarouselItem key={index}>
                     <div 
                       className="relative aspect-square rounded-lg overflow-visible bg-gradient-to-br from-secondary/10 to-primary/10 group cursor-pointer touch-none"
-                      onMouseEnter={() => {
-                        setShowMagnifier(true);
-                        setCurrentImage(image);
+                      onMouseDown={(e) => {
+                        if (e.button === 0) { // Left mouse button
+                          e.preventDefault();
+                          setShowMagnifier(true);
+                          setCurrentImage(image);
+                          handleMagnifierMove(e as any);
+                        }
                       }}
+                      onMouseMove={(e) => {
+                        if (showMagnifier && currentImage === image) {
+                          handleMagnifierMove(e);
+                        }
+                      }}
+                      onMouseUp={() => setShowMagnifier(false)}
                       onMouseLeave={() => setShowMagnifier(false)}
-                      onMouseMove={handleMagnifierMove}
                       onTouchStart={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -351,11 +360,11 @@ export default function ProductDetail() {
                         />
                       )}
 
-                      <div className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300" onClick={() => openZoom(image)}>
+                      <div className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" onClick={() => openZoom(image)}>
                         <Maximize2 className="w-5 h-5 text-foreground" />
                       </div>
-                      <div className="absolute bottom-4 left-4 right-4 text-center text-background/80 text-xs sm:text-sm">
-                        <p className="hidden md:block">Hover to magnify • Click icon for full view</p>
+                      <div className="absolute bottom-4 left-4 right-4 text-center text-background/80 text-xs sm:text-sm pointer-events-none">
+                        <p className="hidden md:block">Click & hold to magnify • Click icon for full view</p>
                         <p className="md:hidden">Touch & hold to magnify • Tap icon for zoom</p>
                       </div>
                     </div>
