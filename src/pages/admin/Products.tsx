@@ -519,7 +519,7 @@ export default function AdminProducts() {
                     <Input
                       id="product-images"
                       type="file"
-                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      accept=".jpg,.jpeg,.png,.webp"
                       multiple
                       className="hidden"
                       onChange={handleImageUpload}
