@@ -581,14 +581,6 @@ export default function ProductDetail() {
                 <ShoppingCart className="mr-2 h-5 w-5" />
                 {product.available ? 'Add to Cart' : 'Out of Stock'}
               </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="w-full"
-                onClick={() => navigate('/submit-review')}
-              >
-                Write a Review
-              </Button>
             </div>
           </div>
         </div>
