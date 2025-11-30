@@ -184,6 +184,8 @@ export default function ProductDetail() {
 
   const handleMagnifierTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
     if (e.touches.length === 1) {
+      e.preventDefault(); // Prevent page scroll
+      e.stopPropagation(); // Stop event bubbling
       const elem = e.currentTarget;
       const { left, top, width, height } = elem.getBoundingClientRect();
       const x = ((e.touches[0].clientX - left) / width) * 100;
@@ -307,7 +309,7 @@ export default function ProductDetail() {
                 {(product.images || ["/placeholder.svg"]).map((image: string, index: number) => (
                   <CarouselItem key={index}>
                     <div 
-                      className="relative aspect-square rounded-lg overflow-visible bg-gradient-to-br from-secondary/10 to-primary/10 group cursor-pointer"
+                      className="relative aspect-square rounded-lg overflow-visible bg-gradient-to-br from-secondary/10 to-primary/10 group cursor-pointer touch-none"
                       onMouseEnter={() => {
                         setShowMagnifier(true);
                         setCurrentImage(image);
@@ -315,12 +317,17 @@ export default function ProductDetail() {
                       onMouseLeave={() => setShowMagnifier(false)}
                       onMouseMove={handleMagnifierMove}
                       onTouchStart={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         setShowMagnifier(true);
                         setCurrentImage(image);
                         handleMagnifierTouchMove(e);
                       }}
                       onTouchMove={handleMagnifierTouchMove}
-                      onTouchEnd={() => setShowMagnifier(false)}
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
+                        setShowMagnifier(false);
+                      }}
                     >
                       <img
                         src={image}
