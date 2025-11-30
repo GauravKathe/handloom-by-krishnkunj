@@ -145,20 +145,20 @@ export default function AdminProducts() {
         const file = files[i];
 
         // Validate file type
-        if (!["image/jpeg", "image/jpg", "image/png"].includes(file.type)) {
+        if (!["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type)) {
           toast({
             title: "Invalid file type",
-            description: `File ${file.name} is not a valid image (JPG, JPEG, or PNG)`,
+            description: `File ${file.name} is not a valid image (JPG, JPEG, PNG, or WebP)`,
             variant: "destructive",
           });
           continue;
         }
 
-        // Validate file size (5MB)
-        if (file.size > 5242880) {
+        // Validate file size (3MB)
+        if (file.size > 3145728) {
           toast({
             title: "File too large",
-            description: `File ${file.name} must be less than 5MB`,
+            description: `File ${file.name} must be less than 3MB`,
             variant: "destructive",
           });
           continue;
