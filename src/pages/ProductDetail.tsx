@@ -182,6 +182,16 @@ export default function ProductDetail() {
     setMagnifierPos({ x, y });
   };
 
+  const handleMagnifierTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 1) {
+      const elem = e.currentTarget;
+      const { left, top, width, height } = elem.getBoundingClientRect();
+      const x = ((e.touches[0].clientX - left) / width) * 100;
+      const y = ((e.touches[0].clientY - top) / height) * 100;
+      setMagnifierPos({ x, y });
+    }
+  };
+
   const handleAddToCart = async () => {
     if (!user) {
       toast({
@@ -297,25 +307,31 @@ export default function ProductDetail() {
                 {(product.images || ["/placeholder.svg"]).map((image: string, index: number) => (
                   <CarouselItem key={index}>
                     <div 
-                      className="relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-secondary/10 to-primary/10 group cursor-pointer"
-                      onClick={() => openZoom(image)}
+                      className="relative aspect-square rounded-lg overflow-visible bg-gradient-to-br from-secondary/10 to-primary/10 group cursor-pointer"
                       onMouseEnter={() => {
                         setShowMagnifier(true);
                         setCurrentImage(image);
                       }}
                       onMouseLeave={() => setShowMagnifier(false)}
                       onMouseMove={handleMagnifierMove}
+                      onTouchStart={(e) => {
+                        setShowMagnifier(true);
+                        setCurrentImage(image);
+                        handleMagnifierTouchMove(e);
+                      }}
+                      onTouchMove={handleMagnifierTouchMove}
+                      onTouchEnd={() => setShowMagnifier(false)}
                     >
                       <img
                         src={image}
                         alt={`${product.name} - Image ${index + 1}`}
-                        className="w-full h-full object-cover transition-transform duration-300"
+                        className="w-full h-full object-cover transition-transform duration-300 rounded-lg"
                       />
                       
-                      {/* Magnifier Lens */}
+                      {/* Magnifier Lens - Works on all devices */}
                       {showMagnifier && currentImage === image && (
                         <div
-                          className="hidden md:block absolute w-32 h-32 border-2 border-primary rounded-full pointer-events-none z-10 shadow-lg"
+                          className="absolute w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 border-2 border-primary rounded-full pointer-events-none z-50 shadow-2xl"
                           style={{
                             left: `${magnifierPos.x}%`,
                             top: `${magnifierPos.y}%`,
@@ -328,16 +344,12 @@ export default function ProductDetail() {
                         />
                       )}
 
-                      <div className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300" onClick={() => openZoom(image)}>
                         <Maximize2 className="w-5 h-5 text-foreground" />
                       </div>
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/10 transition-colors duration-300 md:hidden">
-                        <div className="text-background/0 group-hover:text-background/90 text-sm font-medium transition-colors duration-300">
-                          Tap to view full size
-                        </div>
-                      </div>
-                      <div className="absolute bottom-4 left-4 right-4 text-center text-background/0 group-hover:text-background/90 text-xs transition-colors duration-300 hidden md:block">
-                        Hover to magnify • Click for full view
+                      <div className="absolute bottom-4 left-4 right-4 text-center text-background/80 text-xs sm:text-sm">
+                        <p className="hidden md:block">Hover to magnify • Click icon for full view</p>
+                        <p className="md:hidden">Touch & hold to magnify • Tap icon for zoom</p>
                       </div>
                     </div>
                   </CarouselItem>
