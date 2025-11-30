@@ -356,13 +356,23 @@ export default function ProductDetail() {
                       )}
 
                       <div 
-                        className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-50 cursor-pointer" 
+                        className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm rounded-full p-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 z-50 cursor-pointer" 
                         onClick={(e) => {
                           e.stopPropagation();
                           openZoom(image);
                         }}
                         onMouseEnter={() => setIsOverIcon(true)}
                         onMouseLeave={() => setIsOverIcon(false)}
+                        onTouchStart={(e) => {
+                          e.stopPropagation();
+                          setIsOverIcon(true);
+                        }}
+                        onTouchEnd={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          setIsOverIcon(false);
+                          openZoom(image);
+                        }}
                       >
                         <Maximize2 className="w-5 h-5 text-foreground" />
                       </div>
