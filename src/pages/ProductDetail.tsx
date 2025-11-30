@@ -28,10 +28,6 @@ export default function ProductDetail() {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [initialPinchDistance, setInitialPinchDistance] = useState<number | null>(null);
   const [initialZoomLevel, setInitialZoomLevel] = useState(1);
-  const [showMagnifier, setShowMagnifier] = useState(false);
-  const [magnifierPos, setMagnifierPos] = useState({ x: 0, y: 0 });
-  const [currentImage, setCurrentImage] = useState<string | null>(null);
-  const [isOverIcon, setIsOverIcon] = useState(false);
 
   useEffect(() => {
     // Scroll to top when product changes
@@ -175,25 +171,6 @@ export default function ProductDetail() {
     setInitialPinchDistance(null);
   };
 
-  const handleMagnifierMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const elem = e.currentTarget;
-    const { left, top, width, height } = elem.getBoundingClientRect();
-    const x = ((e.clientX - left) / width) * 100;
-    const y = ((e.clientY - top) / height) * 100;
-    setMagnifierPos({ x, y });
-  };
-
-  const handleMagnifierTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (e.touches.length === 1) {
-      e.preventDefault(); // Prevent page scroll
-      e.stopPropagation(); // Stop event bubbling
-      const elem = e.currentTarget;
-      const { left, top, width, height } = elem.getBoundingClientRect();
-      const x = ((e.touches[0].clientX - left) / width) * 100;
-      const y = ((e.touches[0].clientY - top) / height) * 100;
-      setMagnifierPos({ x, y });
-    }
-  };
 
   const handleAddToCart = async () => {
     if (!user) {
@@ -309,76 +286,21 @@ export default function ProductDetail() {
               <CarouselContent>
                 {(product.images || ["/placeholder.svg"]).map((image: string, index: number) => (
                   <CarouselItem key={index}>
-                    <div 
-                      className="relative aspect-square rounded-lg overflow-visible bg-gradient-to-br from-secondary/10 to-primary/10 group cursor-pointer touch-none"
-                      onMouseEnter={() => {
-                        setShowMagnifier(true);
-                        setCurrentImage(image);
-                      }}
-                      onMouseLeave={() => {
-                        setShowMagnifier(false);
-                        setIsOverIcon(false);
-                      }}
-                      onMouseMove={handleMagnifierMove}
-                      onTouchStart={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setShowMagnifier(true);
-                        setCurrentImage(image);
-                        handleMagnifierTouchMove(e);
-                      }}
-                      onTouchMove={handleMagnifierTouchMove}
-                      onTouchEnd={(e) => {
-                        e.preventDefault();
-                        setShowMagnifier(false);
-                      }}
-                    >
+                    <div className="relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-secondary/10 to-primary/10 group">
                       <img
                         src={image}
                         alt={`${product.name} - Image ${index + 1}`}
                         className="w-full h-full object-cover transition-transform duration-300 rounded-lg"
                       />
-                      
-                      {/* Magnifier Lens - Works on all devices, hides when over icon */}
-                      {showMagnifier && currentImage === image && !isOverIcon && (
-                        <div
-                          className="absolute w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 border-2 border-primary rounded-full pointer-events-none z-40 shadow-2xl"
-                          style={{
-                            left: `${magnifierPos.x}%`,
-                            top: `${magnifierPos.y}%`,
-                            transform: 'translate(-50%, -50%)',
-                            backgroundImage: `url(${image})`,
-                            backgroundPosition: `${magnifierPos.x}% ${magnifierPos.y}%`,
-                            backgroundSize: '250%',
-                            backgroundRepeat: 'no-repeat',
-                          }}
-                        />
-                      )}
 
                       <div 
                         className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm rounded-full p-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 z-50 cursor-pointer" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openZoom(image);
-                        }}
-                        onMouseEnter={() => setIsOverIcon(true)}
-                        onMouseLeave={() => setIsOverIcon(false)}
-                        onTouchStart={(e) => {
-                          e.stopPropagation();
-                          setIsOverIcon(true);
-                        }}
-                        onTouchEnd={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                          setIsOverIcon(false);
-                          openZoom(image);
-                        }}
+                        onClick={() => openZoom(image)}
                       >
                         <Maximize2 className="w-5 h-5 text-foreground" />
                       </div>
                       <div className="absolute bottom-4 left-4 right-4 text-center text-background/80 text-xs sm:text-sm pointer-events-none">
-                        <p className="hidden md:block">Hover to magnify • Click icon for full view</p>
-                        <p className="md:hidden">Touch & hold to magnify • Tap icon for zoom</p>
+                        <p>Click icon for full view</p>
                       </div>
                     </div>
                   </CarouselItem>
