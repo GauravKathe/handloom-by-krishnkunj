@@ -43,14 +43,12 @@ export const ProductCard = ({ product }: ProductCardProps) => {
                 style={{ transitionProperty: 'opacity, transform' }}
               />
             ))}
-            {hasDiscount && (
-              <div className="absolute top-3 left-3 z-10">
-                <Badge className="bg-black/80 text-white shadow-md font-medium text-xs px-2 py-1">
-                  {discountPercentage}% off
-                </Badge>
-              </div>
-            )}
             <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
+              {hasDiscount && (
+                <Badge className="bg-red-600 text-white shadow-md font-bold text-xs px-2 py-1">
+                  {discountPercentage}% OFF
+                </Badge>
+              )}
               {product.is_new_arrival && (
                 <Badge className="bg-secondary text-secondary-foreground shadow-md">
                   New
