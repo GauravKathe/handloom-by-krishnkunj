@@ -12,6 +12,13 @@ export const ProductCard = ({ product }: ProductCardProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const images = product.images || ["/placeholder.svg"];
 
+  const originalPrice = product.original_price || product.price;
+  const offerPrice = product.offer_price;
+  const hasDiscount = offerPrice && offerPrice < originalPrice;
+  const discountPercentage = hasDiscount
+    ? Math.round(((originalPrice - offerPrice) / originalPrice) * 100)
+    : 0;
+
   return (
     <Link to={`/product/${product.id}`} className="group">
       <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 h-full">
@@ -36,6 +43,13 @@ export const ProductCard = ({ product }: ProductCardProps) => {
                 style={{ transitionProperty: 'opacity, transform' }}
               />
             ))}
+            <div className="absolute top-3 left-3 flex flex-col gap-2">
+              {hasDiscount && (
+                <Badge className="bg-red-500 text-white shadow-md font-bold">
+                  {discountPercentage}% OFF
+                </Badge>
+              )}
+            </div>
             <div className="absolute top-3 right-3 flex flex-col gap-2">
               {product.is_new_arrival && (
                 <Badge className="bg-secondary text-secondary-foreground shadow-md">
@@ -62,9 +76,22 @@ export const ProductCard = ({ product }: ProductCardProps) => {
               {product.description}
             </p>
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <span className="text-xl md:text-2xl font-bold text-primary">
-                ₹{Number(product.price).toLocaleString()}
-              </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                {hasDiscount ? (
+                  <>
+                    <span className="text-xl md:text-2xl font-bold text-primary">
+                      ₹{Number(offerPrice).toLocaleString()}
+                    </span>
+                    <span className="text-sm md:text-base text-muted-foreground line-through">
+                      ₹{Number(originalPrice).toLocaleString()}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-xl md:text-2xl font-bold text-primary">
+                    ₹{Number(originalPrice).toLocaleString()}
+                  </span>
+                )}
+              </div>
               <Button size="sm" className="shadow-sm">
                 View Details
               </Button>

@@ -280,6 +280,8 @@ export type Database = {
           is_best_seller: boolean
           is_new_arrival: boolean
           name: string
+          offer_price: number | null
+          original_price: number
           price: number
           updated_at: string
         }
@@ -295,6 +297,8 @@ export type Database = {
           is_best_seller?: boolean
           is_new_arrival?: boolean
           name: string
+          offer_price?: number | null
+          original_price?: number
           price: number
           updated_at?: string
         }
@@ -310,6 +314,8 @@ export type Database = {
           is_best_seller?: boolean
           is_new_arrival?: boolean
           name?: string
+          offer_price?: number | null
+          original_price?: number
           price?: number
           updated_at?: string
         }
