@@ -293,9 +293,6 @@ export default function ProductDetail() {
                       >
                         <Maximize2 className="w-5 h-5 text-foreground" />
                       </div>
-                      <div className="absolute bottom-4 left-4 right-4 text-center text-background/80 text-xs sm:text-sm pointer-events-none">
-                        <p>Click icon for full view</p>
-                      </div>
                     </div>
                   </CarouselItem>
                 ))}

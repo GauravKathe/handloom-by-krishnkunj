@@ -43,14 +43,14 @@ export const ProductCard = ({ product }: ProductCardProps) => {
                 style={{ transitionProperty: 'opacity, transform' }}
               />
             ))}
-            <div className="absolute top-3 left-3 flex flex-col gap-2">
-              {hasDiscount && (
-                <Badge className="bg-red-500 text-white shadow-md font-bold">
-                  {discountPercentage}% OFF
+            {hasDiscount && (
+              <div className="absolute top-3 left-3 z-10">
+                <Badge className="bg-black/80 text-white shadow-md font-medium text-xs px-2 py-1">
+                  {discountPercentage}% off
                 </Badge>
-              )}
-            </div>
-            <div className="absolute top-3 right-3 flex flex-col gap-2">
+              </div>
+            )}
+            <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
               {product.is_new_arrival && (
                 <Badge className="bg-secondary text-secondary-foreground shadow-md">
                   New
@@ -79,15 +79,15 @@ export const ProductCard = ({ product }: ProductCardProps) => {
               <div className="flex items-center gap-2 flex-wrap">
                 {hasDiscount ? (
                   <>
-                    <span className="text-xl md:text-2xl font-bold text-primary">
+                    <span className="text-lg md:text-xl font-bold text-destructive">
                       ₹{Number(offerPrice).toLocaleString()}
                     </span>
-                    <span className="text-sm md:text-base text-muted-foreground line-through">
+                    <span className="text-sm text-muted-foreground line-through">
                       ₹{Number(originalPrice).toLocaleString()}
                     </span>
                   </>
                 ) : (
-                  <span className="text-xl md:text-2xl font-bold text-primary">
+                  <span className="text-lg md:text-xl font-bold text-primary">
                     ₹{Number(originalPrice).toLocaleString()}
                   </span>
                 )}
