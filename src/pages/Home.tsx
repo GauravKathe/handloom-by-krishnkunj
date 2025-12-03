@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { MarqueeBanner } from "@/components/MarqueeBanner";
+import { ProductCard } from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
@@ -325,35 +326,9 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {featuredProducts.map((product) => (
-                <Link key={product.id} to={`/product/${product.id}`} className="group">
-                  <Card className="overflow-hidden hover:shadow-xl transition-all duration-300">
-                    <CardContent className="p-0">
-                      <div className="aspect-square overflow-hidden bg-gradient-to-br from-secondary/10 to-primary/10">
-                        <img
-                          src={product.images?.[0] || "/placeholder.svg"}
-                          alt={product.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      </div>
-                      <div className="p-6">
-                        <h3 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">
-                          {product.name}
-                        </h3>
-                        <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
-                          {product.description}
-                        </p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-2xl font-bold text-primary">
-                            ₹{product.price.toLocaleString()}
-                          </span>
-                          <Button size="sm">View Details</Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                <ProductCard key={product.id} product={product} />
               ))}
             </div>
 
