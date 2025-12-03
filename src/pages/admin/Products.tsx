@@ -30,7 +30,8 @@ export default function AdminProducts() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    price: "",
+    original_price: "",
+    offer_price: "",
     category_id: "",
     fabric: "",
     color: "",
@@ -86,7 +87,9 @@ export default function AdminProducts() {
     try {
       const productData = {
         ...formData,
-        price: parseFloat(formData.price),
+        original_price: parseFloat(formData.original_price),
+        offer_price: formData.offer_price ? parseFloat(formData.offer_price) : null,
+        price: formData.offer_price ? parseFloat(formData.offer_price) : parseFloat(formData.original_price),
       };
 
       if (editingProduct) {
@@ -110,7 +113,8 @@ export default function AdminProducts() {
     setFormData({
       name: product.name,
       description: product.description,
-      price: product.price.toString(),
+      original_price: product.original_price?.toString() || product.price?.toString() || "",
+      offer_price: product.offer_price?.toString() || "",
       category_id: product.category_id || "",
       fabric: product.fabric || "",
       color: product.color || "",
@@ -368,7 +372,8 @@ export default function AdminProducts() {
     setFormData({
       name: "",
       description: "",
-      price: "",
+      original_price: "",
+      offer_price: "",
       category_id: "",
       fabric: "",
       color: "",
@@ -437,15 +442,33 @@ export default function AdminProducts() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="price">Price (₹) *</Label>
+                  <Label htmlFor="original_price">Original Price (₹) *</Label>
                   <Input
-                    id="price"
+                    id="original_price"
                     type="number"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    value={formData.original_price}
+                    onChange={(e) => setFormData({ ...formData, original_price: e.target.value })}
                     required
+                    placeholder="e.g. 999"
                   />
                 </div>
+                <div>
+                  <Label htmlFor="offer_price">Offer Price (₹)</Label>
+                  <Input
+                    id="offer_price"
+                    type="number"
+                    value={formData.offer_price}
+                    onChange={(e) => setFormData({ ...formData, offer_price: e.target.value })}
+                    placeholder="Optional"
+                  />
+                  {formData.original_price && formData.offer_price && (
+                    <p className="text-xs text-green-600 mt-1">
+                      {Math.round(((parseFloat(formData.original_price) - parseFloat(formData.offer_price)) / parseFloat(formData.original_price)) * 100)}% OFF
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="category">Category</Label>
                   <Select value={formData.category_id} onValueChange={(value) => setFormData({ ...formData, category_id: value })}>

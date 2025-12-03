@@ -268,12 +268,6 @@ export default function ProductDetail() {
     );
   }
 
-  const totalPrice = Number(product.price) + 
-    selectedAddOns.reduce((sum, addonId) => {
-      const addon = addOns.find(a => a.id === addonId);
-      return sum + (addon ? Number(addon.price) : 0);
-    }, 0);
-
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -422,9 +416,45 @@ export default function ProductDetail() {
               </p>
             </div>
 
-            <div className="text-4xl font-bold text-primary">
-              ₹{totalPrice.toLocaleString()}
-            </div>
+            {/* Price Display */}
+            {(() => {
+              const originalPrice = product.original_price || product.price;
+              const offerPrice = product.offer_price;
+              const hasDiscount = offerPrice && offerPrice < originalPrice;
+              const discountPercentage = hasDiscount
+                ? Math.round(((originalPrice - offerPrice) / originalPrice) * 100)
+                : 0;
+              const basePrice = hasDiscount ? offerPrice : originalPrice;
+              const displayTotal = Number(basePrice) + selectedAddOns.reduce((sum, addonId) => {
+                const addon = addOns.find(a => a.id === addonId);
+                return sum + (addon ? Number(addon.price) : 0);
+              }, 0);
+
+              return (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="text-4xl font-bold text-primary">
+                      ₹{displayTotal.toLocaleString()}
+                    </span>
+                    {hasDiscount && (
+                      <>
+                        <span className="text-xl text-muted-foreground line-through">
+                          ₹{Number(originalPrice).toLocaleString()}
+                        </span>
+                        <Badge className="bg-red-500 text-white font-bold text-sm px-3 py-1">
+                          {discountPercentage}% OFF
+                        </Badge>
+                      </>
+                    )}
+                  </div>
+                  {selectedAddOns.length > 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      (includes add-ons)
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
 
             <div className="prose prose-sm max-w-none">
               <p className="text-foreground/80 leading-relaxed">{product.description}</p>
