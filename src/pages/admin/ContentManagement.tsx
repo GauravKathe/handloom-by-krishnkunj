@@ -132,8 +132,8 @@ export default function ContentManagement() {
     setCategories(data || []);
   };
 
-  const TARGET_WIDTH = 1920;
-  const TARGET_HEIGHT = 600;
+  const TARGET_WIDTH = 1280;
+  const TARGET_HEIGHT = 720;
 
   const loadImageFromFile = (file: File): Promise<HTMLImageElement> => {
     return new Promise((resolve, reject) => {
@@ -236,14 +236,14 @@ export default function ContentManagement() {
     const aspectRatio = width / height;
     const warnings: string[] = [];
     
-    if (width < 1600) {
-      warnings.push(`Width (${width}px) is below recommended 1600-1920px`);
+    if (width < 1200) {
+      warnings.push(`Width (${width}px) is below recommended 1280px`);
     }
-    if (height < 400 || height > 700) {
-      warnings.push(`Height (${height}px) is outside recommended 500-600px range`);
+    if (height < 600 || height > 800) {
+      warnings.push(`Height (${height}px) is outside recommended 720px range`);
     }
-    if (aspectRatio < 2.5 || aspectRatio > 4) {
-      warnings.push(`Aspect ratio (${aspectRatio.toFixed(1)}:1) is outside recommended 3:1 to 4:1`);
+    if (aspectRatio < 1.5 || aspectRatio > 2) {
+      warnings.push(`Aspect ratio (${aspectRatio.toFixed(2)}:1) is outside recommended 16:9 (1.78:1)`);
     }
     
     return warnings.length > 0 ? warnings.join('. ') : null;
