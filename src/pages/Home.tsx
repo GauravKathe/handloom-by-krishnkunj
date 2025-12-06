@@ -223,11 +223,11 @@ export default function Home() {
             <CarouselContent>
               {heroSlides.map((slide, index) => (
                 <CarouselItem key={index}>
-                  <div className="relative w-full h-[70vh]">
+                  <div className="w-full h-auto bg-[#f7f3ec] flex justify-center items-center">
                     <img 
                       src={slide.image} 
                       alt={slide.title}
-                      className="w-full h-[70vh] object-cover object-center"
+                      className="w-full h-auto object-contain"
                     />
                   </div>
                 </CarouselItem>
