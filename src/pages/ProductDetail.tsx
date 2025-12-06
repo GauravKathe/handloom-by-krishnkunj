@@ -453,20 +453,10 @@ export default function ProductDetail() {
               );
             })()}
 
-            <div className="prose prose-sm max-w-none">
-              {product.description && (
-                <ul className="list-disc list-inside space-y-2 text-foreground/80">
-                  {product.description
-                    .split(/[\n\r]+|(?<=[.!?])\s+/)
-                    .filter((line: string) => line.trim())
-                    .map((point: string, index: number) => (
-                      <li key={index} className="leading-relaxed">
-                        {point.trim()}
-                      </li>
-                    ))}
-                </ul>
-              )}
-            </div>
+            <div 
+              className="prose prose-sm max-w-none text-foreground/80 [&>ul]:list-disc [&>ul]:list-inside [&>ul]:space-y-2 [&>ol]:list-decimal [&>ol]:list-inside [&>ol]:space-y-2 [&>p]:leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: product.description || '' }}
+            />
 
             {/* Product Details */}
             <Card className="p-6 bg-card/50">
