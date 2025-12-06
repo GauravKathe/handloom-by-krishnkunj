@@ -121,7 +121,7 @@ export default function AdminOrders() {
         };
       });
 
-      // Prepare detailed items data
+      // Prepare detailed items data with SKU and variants from snapshot
       const itemsExportData: any[] = [];
       filteredOrders.forEach(order => {
         order.order_items?.forEach((item: any) => {
@@ -129,10 +129,12 @@ export default function AdminOrders() {
             'Order ID': order.id,
             'Customer Name': order.profiles?.full_name || 'Unknown',
             'Product Name': item.product_name || item.products?.name || 'N/A',
-            'Color': item.products?.color || 'N/A',
-            'Fabric': item.products?.fabric || 'N/A',
+            'SKU': item.product_sku || item.products?.sku || 'N/A',
+            'Color': item.product_color || item.products?.color || 'N/A',
+            'Fabric': item.product_fabric || item.products?.fabric || 'N/A',
             'Quantity': item.quantity,
-            'Price': `₹${Number(item.price).toLocaleString()}`,
+            'Unit Price': `₹${Number(item.price / item.quantity).toLocaleString()}`,
+            'Total Price': `₹${Number(item.price).toLocaleString()}`,
             'Order Date': new Date(order.created_at).toLocaleDateString()
           });
         });
@@ -335,48 +337,56 @@ export default function AdminOrders() {
               <div>
                 <h3 className="font-semibold mb-2">Order Items</h3>
                 <div className="space-y-3">
-                  {selectedOrder.order_items?.map((item: any) => {
-                    // Use snapshot data if product is deleted, otherwise use current product data
-                    const productName = item.product_name || item.products?.name || 'Product Unavailable';
-                    const productImage = item.product_image || item.products?.images?.[0];
-                    const productColor = item.products?.color || 'N/A';
-                    const productFabric = item.products?.fabric || 'N/A';
-                    const isProductDeleted = !item.products;
-                    
-                    return (
-                      <div key={item.id} className="flex items-start gap-4 p-3 border rounded-lg bg-card">
-                        <div className="w-24 h-24 bg-muted rounded-lg flex-shrink-0 overflow-hidden">
-                          {productImage ? (
-                            <img 
-                              src={productImage} 
-                              alt={productName} 
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                              No Image
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-base mb-1">
-                            {productName}
-                            {isProductDeleted && (
-                              <span className="ml-2 text-xs bg-muted text-muted-foreground px-2 py-1 rounded">
-                                Product Deleted
-                              </span>
+                  {selectedOrder.order_items?.length === 0 ? (
+                    <p className="text-muted-foreground text-sm">No items found for this order</p>
+                  ) : (
+                    selectedOrder.order_items?.map((item: any) => {
+                      // Use snapshot data first, fallback to current product data
+                      const productName = item.product_name || item.products?.name || 'Product Unavailable';
+                      const productImage = item.product_image || item.products?.images?.[0];
+                      const productSku = item.product_sku || item.products?.sku || '';
+                      const productColor = item.product_color || item.products?.color || 'N/A';
+                      const productFabric = item.product_fabric || item.products?.fabric || 'N/A';
+                      const isProductDeleted = !item.products;
+                      
+                      return (
+                        <div key={item.id} className="flex items-start gap-4 p-3 border rounded-lg bg-card">
+                          <div className="w-24 h-24 bg-muted rounded-lg flex-shrink-0 overflow-hidden">
+                            {productImage ? (
+                              <img 
+                                src={productImage} 
+                                alt={productName} 
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                No Image
+                              </div>
                             )}
-                          </p>
-                          <div className="space-y-1 text-sm text-muted-foreground">
-                            <p>Color: <span className="font-medium text-foreground">{productColor}</span></p>
-                            <p>Fabric: <span className="font-medium text-foreground">{productFabric}</span></p>
-                            <p>Quantity: <span className="font-medium text-foreground">{item.quantity}</span></p>
-                            <p>Price at Purchase: <span className="font-medium text-foreground">₹{Number(item.price).toLocaleString()}</span></p>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-base mb-1">
+                              {productName}
+                              {isProductDeleted && (
+                                <span className="ml-2 text-xs bg-muted text-muted-foreground px-2 py-1 rounded">
+                                  Product Deleted
+                                </span>
+                              )}
+                            </p>
+                            <div className="space-y-1 text-sm text-muted-foreground">
+                              {productSku && (
+                                <p>SKU: <span className="font-medium text-foreground font-mono">{productSku}</span></p>
+                              )}
+                              <p>Color: <span className="font-medium text-foreground">{productColor}</span></p>
+                              <p>Fabric: <span className="font-medium text-foreground">{productFabric}</span></p>
+                              <p>Quantity: <span className="font-medium text-foreground">{item.quantity}</span></p>
+                              <p>Price at Purchase: <span className="font-medium text-foreground">₹{Number(item.price).toLocaleString()}</span></p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                 </div>
               </div>
 
