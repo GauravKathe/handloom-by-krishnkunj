@@ -104,8 +104,12 @@ export default function Home() {
       .eq("section", "homepage_hero")
       .single();
 
-    if (data?.content && typeof data.content === 'object' && 'bannerImages' in data.content) {
-      setHeroContent(data.content as { bannerImages: string[]; showTextOverlay?: boolean });
+    if (data?.content && typeof data.content === 'object') {
+      setHeroContent(data.content as { 
+        bannerImages?: string[]; 
+        bannerSlides?: { image: string; title: string; subtitle: string }[];
+        showTextOverlay?: boolean 
+      });
     }
   };
 
@@ -115,22 +119,38 @@ export default function Home() {
     { image: heroImage3, title: "Heritage in Every Thread", subtitle: "Supporting women artisans across India" },
   ];
 
-  // Map banner images to slides format
-  const bannerImages = (heroContent && typeof heroContent === 'object' && 'bannerImages' in heroContent) 
-    ? (heroContent as { bannerImages: string[]; showTextOverlay?: boolean }).bannerImages 
-    : [];
+  // Get slides from new format or convert from legacy format
+  const getHeroSlides = () => {
+    if (!heroContent) return defaultHeroSlides;
+    
+    const content = heroContent as { 
+      bannerImages?: string[]; 
+      bannerSlides?: { image: string; title: string; subtitle: string }[];
+      showTextOverlay?: boolean 
+    };
+    
+    // New format with full slide objects
+    if (content.bannerSlides && content.bannerSlides.length > 0) {
+      return content.bannerSlides;
+    }
+    
+    // Legacy format with just image URLs
+    if (content.bannerImages && content.bannerImages.length > 0) {
+      return content.bannerImages.map((img, idx) => ({
+        image: img,
+        title: defaultHeroSlides[idx % defaultHeroSlides.length]?.title || "Discover Beautiful Sarees",
+        subtitle: defaultHeroSlides[idx % defaultHeroSlides.length]?.subtitle || "Handcrafted with love and tradition",
+      }));
+    }
+    
+    return defaultHeroSlides;
+  };
+
+  const heroSlides = getHeroSlides();
 
   const showTextOverlay = (heroContent && typeof heroContent === 'object' && 'showTextOverlay' in heroContent) 
     ? (heroContent as { showTextOverlay?: boolean }).showTextOverlay 
-    : true; // Default to showing overlay for backward compatibility
-    
-  const bannerSlides = bannerImages.map((img: string, idx: number) => ({
-    image: img,
-    title: defaultHeroSlides[idx]?.title || "Discover Beautiful Sarees",
-    subtitle: defaultHeroSlides[idx]?.subtitle || "Handcrafted with love and tradition",
-  }));
-
-  const heroSlides = bannerSlides.length > 0 ? bannerSlides : defaultHeroSlides;
+    : true;
 
   // Calculate items per page based on screen size
   const getItemsPerPage = () => {
