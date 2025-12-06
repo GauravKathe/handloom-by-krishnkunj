@@ -150,13 +150,6 @@ export default function Home() {
 
   const heroSlides = getHeroSlides();
 
-  const showTextOverlay = (heroContent && typeof heroContent === 'object' && 'showTextOverlay' in heroContent) 
-    ? (heroContent as { showTextOverlay?: boolean }).showTextOverlay 
-    : true;
-
-  const bannerBgColor = (heroContent && typeof heroContent === 'object' && 'bannerBgColor' in heroContent) 
-    ? (heroContent as { bannerBgColor?: string }).bannerBgColor 
-    : "#f5f0e8";
 
   // Calculate items per page based on screen size
   const getItemsPerPage = () => {
@@ -212,7 +205,7 @@ export default function Home() {
 
       <main className="flex-1">
         {/* Hero Carousel */}
-        <section className="relative">
+        <section className="relative w-full">
           <Carousel
             opts={{ 
               loop: true,
@@ -230,33 +223,12 @@ export default function Home() {
             <CarouselContent>
               {heroSlides.map((slide, index) => (
                 <CarouselItem key={index}>
-                  <div 
-                    className="relative w-full flex justify-center"
-                    style={{ backgroundColor: bannerBgColor }}
-                  >
+                  <div className="relative w-full h-[70vh]">
                     <img 
                       src={slide.image} 
                       alt={slide.title}
-                      className="w-full h-auto max-h-[80vh] object-contain"
+                      className="w-full h-[70vh] object-cover object-center"
                     />
-                    {showTextOverlay && (
-                      <>
-                        <div className="absolute inset-0 bg-gradient-to-r from-primary/40 to-transparent" />
-                        <div className="absolute inset-0 flex items-center justify-center md:justify-start">
-                          <div className="text-center md:text-left px-4 md:px-16 max-w-3xl">
-                            <h2 className="text-3xl md:text-6xl font-bold text-background mb-4 animate-fade-in drop-shadow-lg">
-                              {slide.title}
-                            </h2>
-                            <p className="text-base md:text-xl text-background/90 mb-8 animate-fade-in drop-shadow-md">
-                              {slide.subtitle}
-                            </p>
-                            <Button size="lg" asChild className="animate-fade-in shadow-lg">
-                              <Link to="/shop">Explore Collection</Link>
-                            </Button>
-                          </div>
-                        </div>
-                      </>
-                    )}
                   </div>
                 </CarouselItem>
               ))}
