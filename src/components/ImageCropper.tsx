@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Crop as CropIcon, RotateCcw, Check } from "lucide-react";
 
 interface ImageCropperProps {
@@ -47,13 +48,18 @@ export function ImageCropper({
   onClose,
   imageFile,
   onCropComplete,
-  aspectRatio = 16 / 9, // 1280/720 = 16:9
-  targetWidth = 1280,
-  targetHeight = 720,
+  aspectRatio: initialAspectRatio = 16 / 9,
+  targetWidth: initialTargetWidth = 1280,
+  targetHeight: initialTargetHeight = 720,
 }: ImageCropperProps) {
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const [imageSrc, setImageSrc] = useState<string>("");
+  const [targetWidth, setTargetWidth] = useState(initialTargetWidth);
+  const [targetHeight, setTargetHeight] = useState(initialTargetHeight);
+  const [horizontalDpi, setHorizontalDpi] = useState(96);
+  const [verticalDpi, setVerticalDpi] = useState(96);
+  const [aspectRatio, setAspectRatio] = useState(initialAspectRatio);
   const imgRef = useRef<HTMLImageElement>(null);
 
   const onImageLoad = useCallback(
@@ -95,6 +101,17 @@ export function ImageCropper({
     if (imgRef.current) {
       const { width, height } = imgRef.current;
       setCrop(centerAspectCrop(width, height, aspectRatio));
+    }
+  };
+
+  const handleDimensionChange = (width: number, height: number) => {
+    setTargetWidth(width);
+    setTargetHeight(height);
+    const newAspectRatio = width / height;
+    setAspectRatio(newAspectRatio);
+    if (imgRef.current) {
+      const { width: imgWidth, height: imgHeight } = imgRef.current;
+      setCrop(centerAspectCrop(imgWidth, imgHeight, newAspectRatio));
     }
   };
 
@@ -161,19 +178,54 @@ export function ImageCropper({
         </DialogHeader>
 
         <div className="flex-1 overflow-auto p-4">
-          {/* Crop Info */}
-          <div className="mb-4 p-3 bg-muted rounded-lg">
-            <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-              <div>
-                <Label className="font-medium">Target Size:</Label>
-                <span className="ml-2 text-muted-foreground">
-                  {targetWidth} × {targetHeight}px (16:9 ratio)
-                </span>
+          {/* Dimension Settings */}
+          <div className="mb-4 p-4 bg-muted rounded-lg space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Width (px)</Label>
+                <Input
+                  type="number"
+                  value={targetWidth}
+                  onChange={(e) => handleDimensionChange(parseInt(e.target.value) || 1280, targetHeight)}
+                  className="h-9"
+                />
               </div>
-              <Button variant="outline" size="sm" onClick={resetCrop}>
-                <RotateCcw className="h-4 w-4 mr-1" />
-                Reset
-              </Button>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Height (px)</Label>
+                <Input
+                  type="number"
+                  value={targetHeight}
+                  onChange={(e) => handleDimensionChange(targetWidth, parseInt(e.target.value) || 720)}
+                  className="h-9"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">H. Resolution (dpi)</Label>
+                <Input
+                  type="number"
+                  value={horizontalDpi}
+                  onChange={(e) => setHorizontalDpi(parseInt(e.target.value) || 96)}
+                  className="h-9"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">V. Resolution (dpi)</Label>
+                <Input
+                  type="number"
+                  value={verticalDpi}
+                  onChange={(e) => setVerticalDpi(parseInt(e.target.value) || 96)}
+                  className="h-9"
+                />
+              </div>
+              <div className="flex items-end">
+                <Button variant="outline" size="sm" onClick={resetCrop} className="w-full h-9">
+                  <RotateCcw className="h-4 w-4 mr-1" />
+                  Reset
+                </Button>
+              </div>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Dimensions: {targetWidth} × {targetHeight} | Aspect Ratio: {(targetWidth / targetHeight).toFixed(2)}:1
             </div>
           </div>
 
