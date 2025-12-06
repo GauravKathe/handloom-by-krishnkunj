@@ -454,7 +454,18 @@ export default function ProductDetail() {
             })()}
 
             <div className="prose prose-sm max-w-none">
-              <p className="text-foreground/80 leading-relaxed">{product.description}</p>
+              {product.description && (
+                <ul className="list-disc list-inside space-y-2 text-foreground/80">
+                  {product.description
+                    .split(/[\n\r]+|(?<=[.!?])\s+/)
+                    .filter((line: string) => line.trim())
+                    .map((point: string, index: number) => (
+                      <li key={index} className="leading-relaxed">
+                        {point.trim()}
+                      </li>
+                    ))}
+                </ul>
+              )}
             </div>
 
             {/* Product Details */}
