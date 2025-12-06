@@ -30,6 +30,7 @@ export default function ContentManagement() {
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingCategory, setUploadingCategory] = useState(false);
+  const [imageSizeWarning, setImageSizeWarning] = useState<string | null>(null);
   const { toast } = useToast();
 
   const [bannerSlides, setBannerSlides] = useState<BannerSlide[]>([]);
@@ -125,6 +126,34 @@ export default function ContentManagement() {
     setCategories(data || []);
   };
 
+  const validateImageDimensions = (file: File): Promise<{ width: number; height: number }> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        resolve({ width: img.width, height: img.height });
+        URL.revokeObjectURL(img.src);
+      };
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
+  const getImageSizeWarning = (width: number, height: number): string | null => {
+    const aspectRatio = width / height;
+    const warnings: string[] = [];
+    
+    if (width < 1600) {
+      warnings.push(`Width (${width}px) is below recommended 1600-1920px`);
+    }
+    if (height < 400 || height > 700) {
+      warnings.push(`Height (${height}px) is outside recommended 500-600px range`);
+    }
+    if (aspectRatio < 2.5 || aspectRatio > 4) {
+      warnings.push(`Aspect ratio (${aspectRatio.toFixed(1)}:1) is outside recommended 3:1 to 4:1`);
+    }
+    
+    return warnings.length > 0 ? warnings.join('. ') : null;
+  };
+
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -145,6 +174,19 @@ export default function ContentManagement() {
         variant: "destructive",
       });
       return;
+    }
+
+    // Validate image dimensions
+    const { width, height } = await validateImageDimensions(file);
+    const warning = getImageSizeWarning(width, height);
+    setImageSizeWarning(warning);
+    
+    if (warning) {
+      toast({
+        title: "Image dimension warning",
+        description: warning,
+        variant: "destructive",
+      });
     }
 
     setUploadingImage(true);
@@ -552,8 +594,44 @@ export default function ContentManagement() {
             </Button>
           )}
           
-          {/* Upload New Banner */}
-          <div className="mt-4">
+          {/* Upload New Banner with Guidelines */}
+          <div className="mt-4 space-y-4">
+            {/* Dimension Guidelines */}
+            <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+              <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">📐 Recommended Banner Dimensions</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <div className="space-y-1">
+                  <p className="font-medium text-blue-800 dark:text-blue-200">Optimal Size:</p>
+                  <p className="text-blue-700 dark:text-blue-300">1920 × 600 pixels (3.2:1 ratio)</p>
+                  <p className="text-blue-600 dark:text-blue-400 text-xs">Alternative: 1600 × 500 pixels</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-blue-800 dark:text-blue-200">Requirements:</p>
+                  <ul className="text-blue-700 dark:text-blue-300 space-y-0.5">
+                    <li>• Width: 1600-1920px for crisp display</li>
+                    <li>• Height: 500-600px for best fit</li>
+                    <li>• Format: JPG, PNG, or WEBP</li>
+                    <li>• Max file size: 5MB</li>
+                  </ul>
+                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700">
+                <p className="text-xs text-blue-600 dark:text-blue-400">
+                  💡 <strong>Tip:</strong> Keep important content centered (middle 60%) as edges may be cropped on mobile. Use the background color option above to fill any empty space.
+                </p>
+              </div>
+            </div>
+
+            {/* Image Size Warning */}
+            {imageSizeWarning && (
+              <div className="p-3 border rounded-lg bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-800">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  ⚠️ <strong>Warning:</strong> {imageSizeWarning}
+                </p>
+              </div>
+            )}
+
+            {/* Upload Button */}
             <Label htmlFor="banner-upload" className="cursor-pointer">
               <div className="flex items-center justify-center gap-2 p-8 border-2 border-dashed rounded-lg hover:bg-accent transition-colors">
                 <Upload className="h-6 w-6" />
@@ -570,9 +648,6 @@ export default function ContentManagement() {
                 disabled={uploadingImage}
               />
             </Label>
-            <p className="text-sm text-muted-foreground mt-2">
-              Upload banner images for the homepage carousel. Images will be fully visible on all devices.
-            </p>
           </div>
 
           {/* Banner Preview Section */}
