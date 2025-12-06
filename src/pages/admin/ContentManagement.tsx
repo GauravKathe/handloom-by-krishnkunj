@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Trash2, Plus, Pencil } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +27,7 @@ export default function ContentManagement() {
   const { toast } = useToast();
 
   const [bannerImages, setBannerImages] = useState<string[]>([]);
+  const [showTextOverlay, setShowTextOverlay] = useState<boolean>(true);
   const [categories, setCategories] = useState<any[]>([]);
   const [newCategory, setNewCategory] = useState({
     name: "",
@@ -78,8 +80,9 @@ export default function ContentManagement() {
       .single();
 
     if (data?.content && typeof data.content === 'object' && 'bannerImages' in data.content) {
-      const content = data.content as { bannerImages: string[] };
+      const content = data.content as { bannerImages: string[]; showTextOverlay?: boolean };
       setBannerImages(content.bannerImages || []);
+      setShowTextOverlay(content.showTextOverlay !== false); // Default to true
     }
   };
 
@@ -150,13 +153,14 @@ export default function ContentManagement() {
     await saveBanners(newBanners);
   };
 
-  const saveBanners = async (images: string[]) => {
+  const saveBanners = async (images: string[], textOverlay?: boolean) => {
+    const overlay = textOverlay !== undefined ? textOverlay : showTextOverlay;
     const { error } = await supabase
       .from("site_content")
       .upsert(
         { 
           section: "homepage_hero", 
-          content: { bannerImages: images }
+          content: { bannerImages: images, showTextOverlay: overlay }
         },
         { onConflict: 'section' }
       );
@@ -170,6 +174,11 @@ export default function ContentManagement() {
     } else {
       toast({ title: "Banners updated successfully" });
     }
+  };
+
+  const handleTextOverlayToggle = async (checked: boolean) => {
+    setShowTextOverlay(checked);
+    await saveBanners(bannerImages, checked);
   };
 
   const handleCategoryImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -348,6 +357,21 @@ export default function ContentManagement() {
           <CardTitle>Homepage Banners</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Text Overlay Toggle */}
+          <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
+            <div>
+              <Label htmlFor="text-overlay-toggle" className="font-semibold">Show Text Overlay</Label>
+              <p className="text-sm text-muted-foreground mt-1">
+                Toggle to show/hide title, subtitle, and button on banner images
+              </p>
+            </div>
+            <Switch
+              id="text-overlay-toggle"
+              checked={showTextOverlay}
+              onCheckedChange={handleTextOverlayToggle}
+            />
+          </div>
+
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {bannerImages.map((img, idx) => (
               <div key={idx} className="relative group">
@@ -386,7 +410,7 @@ export default function ContentManagement() {
               />
             </Label>
             <p className="text-sm text-muted-foreground mt-2">
-              Upload banner images for the homepage carousel. Recommended size: 1920x600px
+              Upload banner images for the homepage carousel. Images will be fully visible on all devices.
             </p>
           </div>
         </CardContent>
