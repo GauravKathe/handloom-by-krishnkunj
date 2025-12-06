@@ -47,9 +47,9 @@ export function ImageCropper({
   onClose,
   imageFile,
   onCropComplete,
-  aspectRatio = 3.2,
-  targetWidth = 1920,
-  targetHeight = 600,
+  aspectRatio = 16 / 9, // 1280/720 = 16:9
+  targetWidth = 1280,
+  targetHeight = 720,
 }: ImageCropperProps) {
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
@@ -167,7 +167,7 @@ export function ImageCropper({
               <div>
                 <Label className="font-medium">Target Size:</Label>
                 <span className="ml-2 text-muted-foreground">
-                  {targetWidth} × {targetHeight}px ({aspectRatio.toFixed(1)}:1 ratio)
+                  {targetWidth} × {targetHeight}px (16:9 ratio)
                 </span>
               </div>
               <Button variant="outline" size="sm" onClick={resetCrop}>
