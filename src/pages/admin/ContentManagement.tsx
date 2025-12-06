@@ -39,6 +39,7 @@ export default function ContentManagement() {
   const [showPreview, setShowPreview] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [autoOptimize, setAutoOptimize] = useState(true);
   
   const [categories, setCategories] = useState<any[]>([]);
   const [newCategory, setNewCategory] = useState({
@@ -126,6 +127,18 @@ export default function ContentManagement() {
     setCategories(data || []);
   };
 
+  const TARGET_WIDTH = 1920;
+  const TARGET_HEIGHT = 600;
+
+  const loadImageFromFile = (file: File): Promise<HTMLImageElement> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const validateImageDimensions = (file: File): Promise<{ width: number; height: number }> => {
     return new Promise((resolve) => {
       const img = new Image();
@@ -134,6 +147,82 @@ export default function ContentManagement() {
         URL.revokeObjectURL(img.src);
       };
       img.src = URL.createObjectURL(file);
+    });
+  };
+
+  const optimizeImage = async (file: File): Promise<{ blob: Blob; wasOptimized: boolean; originalSize: { width: number; height: number }; newSize: { width: number; height: number } }> => {
+    const img = await loadImageFromFile(file);
+    const originalWidth = img.naturalWidth;
+    const originalHeight = img.naturalHeight;
+    
+    // Check if optimization is needed
+    const needsResize = originalWidth > TARGET_WIDTH || originalHeight > TARGET_HEIGHT * 1.5;
+    
+    if (!needsResize) {
+      URL.revokeObjectURL(img.src);
+      return {
+        blob: file,
+        wasOptimized: false,
+        originalSize: { width: originalWidth, height: originalHeight },
+        newSize: { width: originalWidth, height: originalHeight }
+      };
+    }
+
+    // Calculate new dimensions while maintaining aspect ratio
+    let newWidth = originalWidth;
+    let newHeight = originalHeight;
+    
+    // Scale down to fit within target dimensions
+    if (originalWidth > TARGET_WIDTH) {
+      const ratio = TARGET_WIDTH / originalWidth;
+      newWidth = TARGET_WIDTH;
+      newHeight = Math.round(originalHeight * ratio);
+    }
+    
+    // If still too tall, scale down further
+    if (newHeight > TARGET_HEIGHT * 1.5) {
+      const ratio = (TARGET_HEIGHT * 1.5) / newHeight;
+      newHeight = Math.round(TARGET_HEIGHT * 1.5);
+      newWidth = Math.round(newWidth * ratio);
+    }
+
+    // Create canvas and draw resized image
+    const canvas = document.createElement('canvas');
+    canvas.width = newWidth;
+    canvas.height = newHeight;
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      URL.revokeObjectURL(img.src);
+      return {
+        blob: file,
+        wasOptimized: false,
+        originalSize: { width: originalWidth, height: originalHeight },
+        newSize: { width: originalWidth, height: originalHeight }
+      };
+    }
+
+    // Use high-quality image smoothing
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, newWidth, newHeight);
+    
+    URL.revokeObjectURL(img.src);
+
+    // Convert to blob with good quality
+    return new Promise((resolve) => {
+      canvas.toBlob(
+        (blob) => {
+          resolve({
+            blob: blob || file,
+            wasOptimized: !!blob,
+            originalSize: { width: originalWidth, height: originalHeight },
+            newSize: { width: newWidth, height: newHeight }
+          });
+        },
+        file.type === 'image/png' ? 'image/png' : 'image/jpeg',
+        0.9
+      );
     });
   };
 
@@ -167,21 +256,47 @@ export default function ContentManagement() {
       return;
     }
 
-    if (file.size > 5242880) {
+    if (file.size > 10485760) { // Allow larger files since we'll optimize
       toast({
         title: "File too large",
-        description: "Image must be less than 5MB",
+        description: "Image must be less than 10MB",
         variant: "destructive",
       });
       return;
     }
 
-    // Validate image dimensions
-    const { width, height } = await validateImageDimensions(file);
-    const warning = getImageSizeWarning(width, height);
+    setUploadingImage(true);
+
+    let uploadBlob: Blob = file;
+    let finalWidth: number;
+    let finalHeight: number;
+
+    // Auto-optimize if enabled
+    if (autoOptimize) {
+      const result = await optimizeImage(file);
+      uploadBlob = result.blob;
+      finalWidth = result.newSize.width;
+      finalHeight = result.newSize.height;
+
+      if (result.wasOptimized) {
+        const savedKB = Math.round((file.size - result.blob.size) / 1024);
+        toast({
+          title: "Image optimized",
+          description: `Resized from ${result.originalSize.width}×${result.originalSize.height} to ${result.newSize.width}×${result.newSize.height}. Saved ${savedKB}KB.`,
+        });
+      }
+    } else {
+      // Just validate without optimizing
+      const { width, height } = await validateImageDimensions(file);
+      finalWidth = width;
+      finalHeight = height;
+    }
+
+    // Check for warnings on final dimensions
+    const warning = getImageSizeWarning(finalWidth, finalHeight);
     setImageSizeWarning(warning);
     
-    if (warning) {
+    if (warning && !autoOptimize) {
       toast({
         title: "Image dimension warning",
         description: warning,
@@ -189,14 +304,12 @@ export default function ContentManagement() {
       });
     }
 
-    setUploadingImage(true);
-
-    const fileExt = file.name.split(".").pop();
+    const fileExt = file.type === 'image/png' ? 'png' : 'jpg';
     const fileName = `banner-${Date.now()}.${fileExt}`;
 
     const { data, error } = await supabase.storage
       .from("site-content")
-      .upload(fileName, file);
+      .upload(fileName, uploadBlob);
 
     if (error) {
       toast({
@@ -596,6 +709,21 @@ export default function ContentManagement() {
           
           {/* Upload New Banner with Guidelines */}
           <div className="mt-4 space-y-4">
+            {/* Auto-Optimize Toggle */}
+            <div className="flex items-center justify-between p-3 border rounded-lg bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
+              <div>
+                <Label htmlFor="auto-optimize-toggle" className="font-semibold text-green-900 dark:text-green-100">Auto-Optimize Images</Label>
+                <p className="text-sm text-green-700 dark:text-green-300 mt-0.5">
+                  Automatically resize large images to 1920px width for faster loading
+                </p>
+              </div>
+              <Switch
+                id="auto-optimize-toggle"
+                checked={autoOptimize}
+                onCheckedChange={setAutoOptimize}
+              />
+            </div>
+
             {/* Dimension Guidelines */}
             <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
               <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">📐 Recommended Banner Dimensions</h4>
@@ -611,7 +739,7 @@ export default function ContentManagement() {
                     <li>• Width: 1600-1920px for crisp display</li>
                     <li>• Height: 500-600px for best fit</li>
                     <li>• Format: JPG, PNG, or WEBP</li>
-                    <li>• Max file size: 5MB</li>
+                    <li>• Max file size: 10MB (auto-optimized)</li>
                   </ul>
                 </div>
               </div>
