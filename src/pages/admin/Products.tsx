@@ -7,11 +7,11 @@ import { Plus, Search, Edit, Trash2, Package, Upload, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
+import { RichTextEditor } from "@/components/RichTextEditor";
 
 export default function AdminProducts() {
   const [products, setProducts] = useState<any[]>([]);
@@ -432,13 +432,14 @@ export default function AdminProducts() {
               </div>
               <div>
                 <Label htmlFor="description">Description *</Label>
-                <Textarea
-                  id="description"
+                <RichTextEditor
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  required
-                  rows={3}
+                  onChange={(value) => setFormData({ ...formData, description: value })}
+                  placeholder="Enter product description..."
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Use the toolbar to format text and create bullet points
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
