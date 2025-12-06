@@ -108,7 +108,8 @@ export default function Home() {
       setHeroContent(data.content as { 
         bannerImages?: string[]; 
         bannerSlides?: { image: string; title: string; subtitle: string }[];
-        showTextOverlay?: boolean 
+        showTextOverlay?: boolean;
+        bannerBgColor?: string;
       });
     }
   };
@@ -126,7 +127,8 @@ export default function Home() {
     const content = heroContent as { 
       bannerImages?: string[]; 
       bannerSlides?: { image: string; title: string; subtitle: string }[];
-      showTextOverlay?: boolean 
+      showTextOverlay?: boolean;
+      bannerBgColor?: string;
     };
     
     // New format with full slide objects
@@ -151,6 +153,10 @@ export default function Home() {
   const showTextOverlay = (heroContent && typeof heroContent === 'object' && 'showTextOverlay' in heroContent) 
     ? (heroContent as { showTextOverlay?: boolean }).showTextOverlay 
     : true;
+
+  const bannerBgColor = (heroContent && typeof heroContent === 'object' && 'bannerBgColor' in heroContent) 
+    ? (heroContent as { bannerBgColor?: string }).bannerBgColor 
+    : "#f5f0e8";
 
   // Calculate items per page based on screen size
   const getItemsPerPage = () => {
@@ -224,7 +230,10 @@ export default function Home() {
             <CarouselContent>
               {heroSlides.map((slide, index) => (
                 <CarouselItem key={index}>
-                  <div className="relative w-full">
+                  <div 
+                    className="relative w-full flex justify-center"
+                    style={{ backgroundColor: bannerBgColor }}
+                  >
                     <img 
                       src={slide.image} 
                       alt={slide.title}

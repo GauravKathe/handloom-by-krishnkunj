@@ -34,6 +34,7 @@ export default function ContentManagement() {
 
   const [bannerSlides, setBannerSlides] = useState<BannerSlide[]>([]);
   const [showTextOverlay, setShowTextOverlay] = useState(true);
+  const [bannerBgColor, setBannerBgColor] = useState("#f5f0e8");
   const [showPreview, setShowPreview] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -92,7 +93,8 @@ export default function ContentManagement() {
       const content = data.content as { 
         bannerImages?: string[]; 
         bannerSlides?: BannerSlide[];
-        showTextOverlay?: boolean 
+        showTextOverlay?: boolean;
+        bannerBgColor?: string;
       };
       
       if (content.bannerSlides) {
@@ -108,6 +110,9 @@ export default function ContentManagement() {
         setBannerSlides(slides);
       }
       setShowTextOverlay(content.showTextOverlay !== false);
+      if (content.bannerBgColor) {
+        setBannerBgColor(content.bannerBgColor);
+      }
     }
   };
 
@@ -195,16 +200,18 @@ export default function ContentManagement() {
 
   const saveSlideText = async () => {
     setSaving(true);
-    await saveBanners(bannerSlides);
+    await saveBanners(bannerSlides, showTextOverlay, bannerBgColor);
     setHasUnsavedChanges(false);
     setSaving(false);
   };
 
-  const saveBanners = async (slides: BannerSlide[], textOverlay?: boolean) => {
+  const saveBanners = async (slides: BannerSlide[], textOverlay?: boolean, bgColor?: string) => {
     const overlay = textOverlay !== undefined ? textOverlay : showTextOverlay;
+    const backgroundColor = bgColor !== undefined ? bgColor : bannerBgColor;
     const contentData = { 
       bannerSlides: slides.map(s => ({ image: s.image, title: s.title, subtitle: s.subtitle })), 
-      showTextOverlay: overlay 
+      showTextOverlay: overlay,
+      bannerBgColor: backgroundColor
     };
     
     const { data: existing } = await supabase
@@ -240,7 +247,12 @@ export default function ContentManagement() {
 
   const handleTextOverlayToggle = async (checked: boolean) => {
     setShowTextOverlay(checked);
-    await saveBanners(bannerSlides, checked);
+    await saveBanners(bannerSlides, checked, bannerBgColor);
+  };
+
+  const handleBgColorChange = async (color: string) => {
+    setBannerBgColor(color);
+    setHasUnsavedChanges(true);
   };
 
   const handleCategoryImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -430,6 +442,29 @@ export default function ContentManagement() {
             />
           </div>
 
+          {/* Background Color Picker */}
+          <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
+            <div>
+              <Label htmlFor="banner-bg-color" className="font-semibold">Banner Background Color</Label>
+              <p className="text-sm text-muted-foreground mt-1">
+                Fill color for empty space around banner images
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div 
+                className="w-10 h-10 rounded-lg border-2 border-border shadow-sm"
+                style={{ backgroundColor: bannerBgColor }}
+              />
+              <Input
+                id="banner-bg-color"
+                type="color"
+                value={bannerBgColor}
+                onChange={(e) => handleBgColorChange(e.target.value)}
+                className="w-16 h-10 p-1 cursor-pointer"
+              />
+            </div>
+          </div>
+
           {/* Banner Slides with Text Editing */}
           <div className="space-y-4">
             {bannerSlides.map((slide, idx) => (
@@ -536,8 +571,8 @@ export default function ContentManagement() {
               </div>
 
               {showPreview && bannerSlides[previewIndex] && (
-                <div className="border rounded-lg overflow-hidden bg-muted">
-                  <div className="relative w-full">
+                <div className="border rounded-lg overflow-hidden" style={{ backgroundColor: bannerBgColor }}>
+                  <div className="relative w-full flex justify-center">
                     <img 
                       src={bannerSlides[previewIndex].image} 
                       alt="Banner preview"
