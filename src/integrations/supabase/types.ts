@@ -178,7 +178,7 @@ export type Database = {
           product_color: string | null
           product_description: string | null
           product_fabric: string | null
-          product_id: string
+          product_id: string | null
           product_image: string | null
           product_name: string | null
           product_sku: string | null
@@ -193,7 +193,7 @@ export type Database = {
           product_color?: string | null
           product_description?: string | null
           product_fabric?: string | null
-          product_id: string
+          product_id?: string | null
           product_image?: string | null
           product_name?: string | null
           product_sku?: string | null
@@ -208,7 +208,7 @@ export type Database = {
           product_color?: string | null
           product_description?: string | null
           product_fabric?: string | null
-          product_id?: string
+          product_id?: string | null
           product_image?: string | null
           product_name?: string | null
           product_sku?: string | null
