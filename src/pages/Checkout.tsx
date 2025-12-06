@@ -346,19 +346,23 @@ export default function Checkout() {
       if (orderError) throw orderError;
 
       // Insert order items with product snapshot including SKU and variants
-      const orderItems = cartItems.map(item => ({
-        order_id: order.id,
-        product_id: item.product_id,
-        quantity: item.quantity,
-        price: calculateItemTotal(item),
-        selected_add_ons: item.selected_add_ons || [],
-        product_name: item.products?.name || '',
-        product_image: item.products?.images?.[0] || '',
-        product_description: item.products?.description || '',
-        product_sku: item.products?.sku || '',
-        product_color: item.products?.color || '',
-        product_fabric: item.products?.fabric || ''
-      }));
+      const orderItems = cartItems.map(item => {
+        const itemTotal = calculateItemTotal(item);
+        return {
+          order_id: order.id,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          price: itemTotal,
+          item_total: itemTotal,
+          selected_add_ons: item.selected_add_ons || [],
+          product_name: item.products?.name || '',
+          product_image: item.products?.images?.[0] || '',
+          product_description: item.products?.description || '',
+          product_sku: item.products?.sku || '',
+          product_color: item.products?.color || '',
+          product_fabric: item.products?.fabric || ''
+        };
+      });
 
       const { error: itemsError } = await supabase
         .from("order_items")
