@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { RichTextEditor } from "@/components/RichTextEditor";
 
 export default function MarqueeBannerAdmin() {
   const [content, setContent] = useState("");
@@ -73,6 +73,13 @@ export default function MarqueeBannerAdmin() {
     }
   };
 
+  // Strip HTML tags for plain text preview
+  const getPlainText = (html: string) => {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+  };
+
   if (initialLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -108,16 +115,17 @@ export default function MarqueeBannerAdmin() {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="marquee-text" className="text-sm font-medium">
-              Banner Text
-            </label>
-            <Input
-              id="marquee-text"
+            <Label className="text-sm font-medium">
+              Banner Content
+            </Label>
+            <RichTextEditor
               value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Enter marquee banner text..."
-              className="w-full"
+              onChange={setContent}
+              placeholder="Enter marquee banner content..."
             />
+            <p className="text-xs text-muted-foreground">
+              Use the toolbar to format text, add colors, and styling
+            </p>
           </div>
           
           <div className="bg-muted p-4 rounded-md">
@@ -125,12 +133,30 @@ export default function MarqueeBannerAdmin() {
             {isEnabled ? (
               <div className="bg-primary text-primary-foreground py-2 overflow-hidden rounded">
                 <div className="flex animate-marquee">
-                  <span className="flex-shrink-0 px-4">{content || "Your text here..."}</span>
-                  <span className="flex-shrink-0 px-4">{content || "Your text here..."}</span>
-                  <span className="flex-shrink-0 px-4">{content || "Your text here..."}</span>
-                  <span className="flex-shrink-0 px-4">{content || "Your text here..."}</span>
-                  <span className="flex-shrink-0 px-4">{content || "Your text here..."}</span>
-                  <span className="flex-shrink-0 px-4">{content || "Your text here..."}</span>
+                  <span 
+                    className="flex-shrink-0 px-4 [&_*]:inline"
+                    dangerouslySetInnerHTML={{ __html: content || "Your text here..." }}
+                  />
+                  <span 
+                    className="flex-shrink-0 px-4 [&_*]:inline"
+                    dangerouslySetInnerHTML={{ __html: content || "Your text here..." }}
+                  />
+                  <span 
+                    className="flex-shrink-0 px-4 [&_*]:inline"
+                    dangerouslySetInnerHTML={{ __html: content || "Your text here..." }}
+                  />
+                  <span 
+                    className="flex-shrink-0 px-4 [&_*]:inline"
+                    dangerouslySetInnerHTML={{ __html: content || "Your text here..." }}
+                  />
+                  <span 
+                    className="flex-shrink-0 px-4 [&_*]:inline"
+                    dangerouslySetInnerHTML={{ __html: content || "Your text here..." }}
+                  />
+                  <span 
+                    className="flex-shrink-0 px-4 [&_*]:inline"
+                    dangerouslySetInnerHTML={{ __html: content || "Your text here..." }}
+                  />
                 </div>
               </div>
             ) : (
@@ -140,7 +166,7 @@ export default function MarqueeBannerAdmin() {
             )}
           </div>
 
-          <Button onClick={handleSave} disabled={loading || !content}>
+          <Button onClick={handleSave} disabled={loading || !getPlainText(content)}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save Changes
           </Button>

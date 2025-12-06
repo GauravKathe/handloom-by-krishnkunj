@@ -2,6 +2,10 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { Color } from '@tiptap/extension-color';
+import Highlight from '@tiptap/extension-highlight';
+import Image from '@tiptap/extension-image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -18,7 +22,10 @@ import {
   AlignCenter,
   AlignRight,
   Link as LinkIcon,
-  Unlink
+  Unlink,
+  Palette,
+  Highlighter,
+  ImageIcon
 } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 
@@ -28,20 +35,47 @@ interface RichTextEditorProps {
   placeholder?: string;
 }
 
+const TEXT_COLORS = [
+  { name: 'Default', color: 'inherit' },
+  { name: 'Black', color: '#000000' },
+  { name: 'Dark Gray', color: '#4B5563' },
+  { name: 'Red', color: '#DC2626' },
+  { name: 'Orange', color: '#EA580C' },
+  { name: 'Yellow', color: '#CA8A04' },
+  { name: 'Green', color: '#16A34A' },
+  { name: 'Blue', color: '#2563EB' },
+  { name: 'Purple', color: '#9333EA' },
+  { name: 'Pink', color: '#DB2777' },
+];
+
+const HIGHLIGHT_COLORS = [
+  { name: 'None', color: '' },
+  { name: 'Yellow', color: '#FEF08A' },
+  { name: 'Green', color: '#BBF7D0' },
+  { name: 'Blue', color: '#BFDBFE' },
+  { name: 'Pink', color: '#FBCFE8' },
+  { name: 'Orange', color: '#FED7AA' },
+  { name: 'Purple', color: '#E9D5FF' },
+];
+
 export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorProps) => {
   const [linkUrl, setLinkUrl] = useState('');
   const [linkPopoverOpen, setLinkPopoverOpen] = useState(false);
+  const [imageUrl, setImageUrl] = useState('');
+  const [imagePopoverOpen, setImagePopoverOpen] = useState(false);
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         bulletList: {
-          keepMarks: true,
-          keepAttributes: false,
+          HTMLAttributes: {
+            class: 'list-disc list-inside space-y-1',
+          },
         },
         orderedList: {
-          keepMarks: true,
-          keepAttributes: false,
+          HTMLAttributes: {
+            class: 'list-decimal list-inside space-y-1',
+          },
         },
         heading: {
           levels: [2, 3],
@@ -56,6 +90,16 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
           class: 'text-primary underline cursor-pointer',
         },
       }),
+      TextStyle,
+      Color,
+      Highlight.configure({
+        multicolor: true,
+      }),
+      Image.configure({
+        HTMLAttributes: {
+          class: 'max-w-full h-auto rounded-lg my-2',
+        },
+      }),
     ],
     content: value,
     onUpdate: ({ editor }) => {
@@ -63,7 +107,7 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none min-h-[120px] p-3 focus:outline-none',
+        class: 'prose prose-sm max-w-none min-h-[120px] p-3 focus:outline-none [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6',
       },
     },
   });
@@ -95,6 +139,15 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
       setLinkUrl(previousUrl);
     }
   };
+
+  const addImage = useCallback(() => {
+    if (!editor || !imageUrl) return;
+    
+    const url = imageUrl.startsWith('http') ? imageUrl : `https://${imageUrl}`;
+    editor.chain().focus().setImage({ src: url }).run();
+    setImageUrl('');
+    setImagePopoverOpen(false);
+  }, [editor, imageUrl]);
 
   if (!editor) {
     return null;
@@ -145,6 +198,78 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
         >
           <Italic className="h-4 w-4" />
         </Button>
+        <div className="w-px h-6 bg-border mx-1 self-center" />
+        
+        {/* Text Color */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              title="Text Color"
+            >
+              <Palette className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-2" align="start">
+            <div className="grid grid-cols-5 gap-1">
+              {TEXT_COLORS.map((item) => (
+                <button
+                  key={item.name}
+                  type="button"
+                  onClick={() => {
+                    if (item.color === 'inherit') {
+                      editor.chain().focus().unsetColor().run();
+                    } else {
+                      editor.chain().focus().setColor(item.color).run();
+                    }
+                  }}
+                  className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform"
+                  style={{ backgroundColor: item.color === 'inherit' ? '#fff' : item.color }}
+                  title={item.name}
+                />
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* Highlight Color */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant={editor.isActive('highlight') ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-8 w-8 p-0"
+              title="Highlight"
+            >
+              <Highlighter className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-2" align="start">
+            <div className="grid grid-cols-4 gap-1">
+              {HIGHLIGHT_COLORS.map((item) => (
+                <button
+                  key={item.name}
+                  type="button"
+                  onClick={() => {
+                    if (item.color === '') {
+                      editor.chain().focus().unsetHighlight().run();
+                    } else {
+                      editor.chain().focus().toggleHighlight({ color: item.color }).run();
+                    }
+                  }}
+                  className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform"
+                  style={{ backgroundColor: item.color || '#fff' }}
+                  title={item.name}
+                />
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+
         <div className="w-px h-6 bg-border mx-1 self-center" />
         <Button
           type="button"
@@ -198,6 +323,8 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
           <ListOrdered className="h-4 w-4" />
         </Button>
         <div className="w-px h-6 bg-border mx-1 self-center" />
+        
+        {/* Link */}
         <Popover open={linkPopoverOpen} onOpenChange={handleLinkPopoverOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -253,6 +380,52 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
             <Unlink className="h-4 w-4" />
           </Button>
         )}
+
+        {/* Image */}
+        <Popover open={imagePopoverOpen} onOpenChange={setImagePopoverOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              title="Insert Image"
+            >
+              <ImageIcon className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 p-3" align="start">
+            <div className="space-y-3">
+              <p className="text-sm font-medium">Insert Image</p>
+              <Input
+                type="url"
+                placeholder="https://example.com/image.jpg"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addImage();
+                  }
+                }}
+              />
+              <div className="flex gap-2">
+                <Button type="button" size="sm" onClick={addImage} className="flex-1">
+                  Insert
+                </Button>
+                <Button 
+                  type="button" 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => setImagePopoverOpen(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+
         <div className="w-px h-6 bg-border mx-1 self-center" />
         <Button
           type="button"
