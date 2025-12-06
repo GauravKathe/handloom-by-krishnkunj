@@ -155,15 +155,30 @@ export default function ContentManagement() {
 
   const saveBanners = async (images: string[], textOverlay?: boolean) => {
     const overlay = textOverlay !== undefined ? textOverlay : showTextOverlay;
-    const { error } = await supabase
+    const contentData = { bannerImages: images, showTextOverlay: overlay };
+    
+    // First check if record exists
+    const { data: existing } = await supabase
       .from("site_content")
-      .upsert(
-        { 
-          section: "homepage_hero", 
-          content: { bannerImages: images, showTextOverlay: overlay }
-        },
-        { onConflict: 'section' }
-      );
+      .select("id")
+      .eq("section", "homepage_hero")
+      .single();
+
+    let error;
+    if (existing) {
+      // Update existing record
+      const result = await supabase
+        .from("site_content")
+        .update({ content: contentData })
+        .eq("section", "homepage_hero");
+      error = result.error;
+    } else {
+      // Insert new record
+      const result = await supabase
+        .from("site_content")
+        .insert({ section: "homepage_hero", content: contentData });
+      error = result.error;
+    }
 
     if (error) {
       toast({
