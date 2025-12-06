@@ -6,9 +6,12 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import Highlight from '@tiptap/extension-highlight';
 import Image from '@tiptap/extension-image';
+import Underline from '@tiptap/extension-underline';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Bold, 
   Italic, 
@@ -25,9 +28,14 @@ import {
   Unlink,
   Palette,
   Highlighter,
-  ImageIcon
+  ImageIcon,
+  Underline as UnderlineIcon,
+  Strikethrough,
+  Upload,
+  Loader2
 } from 'lucide-react';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 interface RichTextEditorProps {
   value: string;
@@ -63,6 +71,9 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
   const [linkPopoverOpen, setLinkPopoverOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [imagePopoverOpen, setImagePopoverOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const editor = useEditor({
     extensions: [
@@ -100,6 +111,7 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
           class: 'max-w-full h-auto rounded-lg my-2',
         },
       }),
+      Underline,
     ],
     content: value,
     onUpdate: ({ editor }) => {
@@ -149,6 +161,67 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
     setImagePopoverOpen(false);
   }, [editor, imageUrl]);
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editor) return;
+
+    // Validate file type
+    if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please upload a JPG, PNG, WebP, or GIF image',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'Image must be less than 5MB',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `editor-${Date.now()}.${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from('site-content')
+        .upload(fileName, file);
+
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage
+        .from('site-content')
+        .getPublicUrl(data.path);
+
+      editor.chain().focus().setImage({ src: urlData.publicUrl }).run();
+      setImagePopoverOpen(false);
+      
+      toast({
+        title: 'Image uploaded',
+        description: 'Image has been inserted into the editor',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Upload failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   if (!editor) {
     return null;
   }
@@ -197,6 +270,26 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
           title="Italic"
         >
           <Italic className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant={editor.isActive('underline') ? 'secondary' : 'ghost'}
+          size="sm"
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          className="h-8 w-8 p-0"
+          title="Underline"
+        >
+          <UnderlineIcon className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant={editor.isActive('strike') ? 'secondary' : 'ghost'}
+          size="sm"
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+          className="h-8 w-8 p-0"
+          title="Strikethrough"
+        >
+          <Strikethrough className="h-4 w-4" />
         </Button>
         <div className="w-px h-6 bg-border mx-1 self-center" />
         
@@ -395,34 +488,76 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-80 p-3" align="start">
-            <div className="space-y-3">
-              <p className="text-sm font-medium">Insert Image</p>
-              <Input
-                type="url"
-                placeholder="https://example.com/image.jpg"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addImage();
-                  }
-                }}
-              />
-              <div className="flex gap-2">
-                <Button type="button" size="sm" onClick={addImage} className="flex-1">
-                  Insert
-                </Button>
+            <Tabs defaultValue="upload" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="upload">Upload</TabsTrigger>
+                <TabsTrigger value="url">URL</TabsTrigger>
+              </TabsList>
+              <TabsContent value="upload" className="space-y-3 mt-3">
+                <p className="text-sm text-muted-foreground">
+                  Upload an image from your device
+                </p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
                 <Button 
                   type="button" 
-                  size="sm" 
                   variant="outline" 
-                  onClick={() => setImagePopoverOpen(false)}
+                  className="w-full"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
                 >
-                  Cancel
+                  {uploading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Choose Image
+                    </>
+                  )}
                 </Button>
-              </div>
-            </div>
+                <p className="text-xs text-muted-foreground">
+                  Max 5MB. JPG, PNG, WebP, GIF
+                </p>
+              </TabsContent>
+              <TabsContent value="url" className="space-y-3 mt-3">
+                <p className="text-sm text-muted-foreground">
+                  Enter an image URL
+                </p>
+                <Input
+                  type="url"
+                  placeholder="https://example.com/image.jpg"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addImage();
+                    }
+                  }}
+                />
+                <div className="flex gap-2">
+                  <Button type="button" size="sm" onClick={addImage} className="flex-1">
+                    Insert
+                  </Button>
+                  <Button 
+                    type="button" 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => setImagePopoverOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </TabsContent>
+            </Tabs>
           </PopoverContent>
         </Popover>
 
