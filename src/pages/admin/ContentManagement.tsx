@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Trash2, Plus, Pencil, Eye, EyeOff, Save } from "lucide-react";
+import { Upload, Trash2, Plus, Pencil, Eye, EyeOff, Save, Settings2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,7 +41,7 @@ export default function ContentManagement() {
   const [previewIndex, setPreviewIndex] = useState(0);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [autoOptimize, setAutoOptimize] = useState(true);
-  
+  const [compressionQuality, setCompressionQuality] = useState(85);
   const [categories, setCategories] = useState<any[]>([]);
   const [newCategory, setNewCategory] = useState({
     name: "",
@@ -209,8 +210,9 @@ export default function ContentManagement() {
     
     URL.revokeObjectURL(img.src);
 
-    // Convert to blob with good quality
+    // Convert to blob with configurable quality
     return new Promise((resolve) => {
+      const quality = compressionQuality / 100;
       canvas.toBlob(
         (blob) => {
           resolve({
@@ -221,7 +223,7 @@ export default function ContentManagement() {
           });
         },
         file.type === 'image/png' ? 'image/png' : 'image/jpeg',
-        0.9
+        quality
       );
     });
   };
@@ -723,6 +725,36 @@ export default function ContentManagement() {
                 onCheckedChange={setAutoOptimize}
               />
             </div>
+
+            {/* Compression Quality Slider */}
+            {autoOptimize && (
+              <div className="p-4 border rounded-lg bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Settings2 className="h-4 w-4 text-purple-700 dark:text-purple-300" />
+                  <Label className="font-semibold text-purple-900 dark:text-purple-100">Compression Quality</Label>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="text-sm text-purple-600 dark:text-purple-400 min-w-[60px]">Smaller</span>
+                  <Slider
+                    value={[compressionQuality]}
+                    onValueChange={(value) => setCompressionQuality(value[0])}
+                    min={30}
+                    max={100}
+                    step={5}
+                    className="flex-1"
+                  />
+                  <span className="text-sm text-purple-600 dark:text-purple-400 min-w-[50px]">Better</span>
+                  <span className="font-mono text-sm font-semibold text-purple-800 dark:text-purple-200 min-w-[40px] text-right">{compressionQuality}%</span>
+                </div>
+                <p className="text-xs text-purple-600 dark:text-purple-400">
+                  {compressionQuality >= 80 
+                    ? "High quality - larger file size, best for detailed images"
+                    : compressionQuality >= 60 
+                      ? "Balanced - good quality with reasonable file size"
+                      : "Compressed - smaller file size, may lose some detail"}
+                </p>
+              </div>
+            )}
 
             {/* Dimension Guidelines */}
             <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
