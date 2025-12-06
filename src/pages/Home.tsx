@@ -224,11 +224,11 @@ export default function Home() {
             <CarouselContent>
               {heroSlides.map((slide, index) => (
                 <CarouselItem key={index}>
-                  <div className="relative w-full aspect-[16/9] md:aspect-[1920/600] overflow-hidden bg-muted">
+                  <div className="relative w-full">
                     <img 
                       src={slide.image} 
                       alt={slide.title}
-                      className="absolute inset-0 w-full h-full object-contain md:object-cover"
+                      className="w-full h-auto max-h-[80vh] object-contain"
                     />
                     {showTextOverlay && (
                       <>
