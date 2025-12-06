@@ -443,16 +443,49 @@ export default function ContentManagement() {
           </div>
 
           {/* Background Color Picker */}
-          <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
+          <div className="p-4 border rounded-lg bg-muted/50 space-y-3">
             <div>
               <Label htmlFor="banner-bg-color" className="font-semibold">Banner Background Color</Label>
               <p className="text-sm text-muted-foreground mt-1">
                 Fill color for empty space around banner images
               </p>
             </div>
+            
+            {/* Preset Colors */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm text-muted-foreground mr-2">Presets:</span>
+              {[
+                { name: "Warm Beige", color: "#f5f0e8" },
+                { name: "Cream", color: "#fffef5" },
+                { name: "White", color: "#ffffff" },
+                { name: "Light Gray", color: "#f4f4f5" },
+                { name: "Warm Gray", color: "#e7e5e4" },
+                { name: "Dark", color: "#1c1917" },
+              ].map((preset) => (
+                <button
+                  key={preset.color}
+                  onClick={() => handleBgColorChange(preset.color)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full border-2 transition-all text-sm ${
+                    bannerBgColor === preset.color 
+                      ? 'border-primary bg-primary/10' 
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                  title={preset.name}
+                >
+                  <div 
+                    className="w-4 h-4 rounded-full border border-border/50"
+                    style={{ backgroundColor: preset.color }}
+                  />
+                  <span className="hidden sm:inline">{preset.name}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Custom Color Picker */}
             <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">Custom:</span>
               <div 
-                className="w-10 h-10 rounded-lg border-2 border-border shadow-sm"
+                className="w-8 h-8 rounded-lg border-2 border-border shadow-sm"
                 style={{ backgroundColor: bannerBgColor }}
               />
               <Input
@@ -460,8 +493,9 @@ export default function ContentManagement() {
                 type="color"
                 value={bannerBgColor}
                 onChange={(e) => handleBgColorChange(e.target.value)}
-                className="w-16 h-10 p-1 cursor-pointer"
+                className="w-14 h-8 p-1 cursor-pointer"
               />
+              <span className="text-sm font-mono text-muted-foreground">{bannerBgColor}</span>
             </div>
           </div>
 
