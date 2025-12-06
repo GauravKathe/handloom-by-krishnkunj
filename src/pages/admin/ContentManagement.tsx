@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Trash2, Plus, Pencil, Eye, EyeOff, Save, Settings2 } from "lucide-react";
+import { Upload, Trash2, Plus, Pencil, Eye, EyeOff, Save, Settings2, Crop } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { ImageCropper } from "@/components/ImageCropper";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,6 +43,9 @@ export default function ContentManagement() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [autoOptimize, setAutoOptimize] = useState(true);
   const [compressionQuality, setCompressionQuality] = useState(85);
+  const [enableCropping, setEnableCropping] = useState(true);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [pendingCropFile, setPendingCropFile] = useState<File | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const [newCategory, setNewCategory] = useState({
     name: "",
@@ -258,7 +262,7 @@ export default function ContentManagement() {
       return;
     }
 
-    if (file.size > 10485760) { // Allow larger files since we'll optimize
+    if (file.size > 10485760) {
       toast({
         title: "File too large",
         description: "Image must be less than 10MB",
@@ -267,21 +271,35 @@ export default function ContentManagement() {
       return;
     }
 
+    // If cropping is enabled, open the cropper dialog
+    if (enableCropping) {
+      setPendingCropFile(file);
+      setCropperOpen(true);
+      // Reset the input so the same file can be selected again
+      e.target.value = '';
+      return;
+    }
+
+    await processAndUploadBanner(file);
+  };
+
+  const processAndUploadBanner = async (fileOrBlob: Blob, skipOptimize = false) => {
     setUploadingImage(true);
 
-    let uploadBlob: Blob = file;
+    let uploadBlob: Blob = fileOrBlob;
     let finalWidth: number;
     let finalHeight: number;
+    const originalSize = fileOrBlob.size;
 
-    // Auto-optimize if enabled
-    if (autoOptimize) {
-      const result = await optimizeImage(file);
+    // Auto-optimize if enabled and not skipping (cropped images are already optimized)
+    if (autoOptimize && !skipOptimize) {
+      const result = await optimizeImage(fileOrBlob as File);
       uploadBlob = result.blob;
       finalWidth = result.newSize.width;
       finalHeight = result.newSize.height;
 
       if (result.wasOptimized) {
-        const savedKB = Math.round((file.size - result.blob.size) / 1024);
+        const savedKB = Math.round((originalSize - result.blob.size) / 1024);
         toast({
           title: "Image optimized",
           description: `Resized from ${result.originalSize.width}×${result.originalSize.height} to ${result.newSize.width}×${result.newSize.height}. Saved ${savedKB}KB.`,
@@ -289,7 +307,7 @@ export default function ContentManagement() {
       }
     } else {
       // Just validate without optimizing
-      const { width, height } = await validateImageDimensions(file);
+      const { width, height } = await validateImageDimensions(fileOrBlob as File);
       finalWidth = width;
       finalHeight = height;
     }
@@ -298,7 +316,7 @@ export default function ContentManagement() {
     const warning = getImageSizeWarning(finalWidth, finalHeight);
     setImageSizeWarning(warning);
     
-    if (warning && !autoOptimize) {
+    if (warning && !autoOptimize && !skipOptimize) {
       toast({
         title: "Image dimension warning",
         description: warning,
@@ -306,8 +324,7 @@ export default function ContentManagement() {
       });
     }
 
-    const fileExt = file.type === 'image/png' ? 'png' : 'jpg';
-    const fileName = `banner-${Date.now()}.${fileExt}`;
+    const fileName = `banner-${Date.now()}.jpg`;
 
     const { data, error } = await supabase.storage
       .from("site-content")
@@ -337,6 +354,16 @@ export default function ContentManagement() {
 
     await saveBanners(newSlides);
     setUploadingImage(false);
+  };
+
+  const handleCropComplete = async (croppedBlob: Blob, dimensions: { width: number; height: number }) => {
+    setPendingCropFile(null);
+    toast({
+      title: "Image cropped",
+      description: `Cropped to ${dimensions.width}×${dimensions.height}px`,
+    });
+    // Skip optimization since cropper already outputs optimal dimensions
+    await processAndUploadBanner(croppedBlob, true);
   };
 
   const removeBannerSlide = async (index: number) => {
@@ -711,6 +738,24 @@ export default function ContentManagement() {
           
           {/* Upload New Banner with Guidelines */}
           <div className="mt-4 space-y-4">
+            {/* Crop Tool Toggle */}
+            <div className="flex items-center justify-between p-3 border rounded-lg bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800">
+              <div className="flex items-center gap-2">
+                <Crop className="h-4 w-4 text-orange-700 dark:text-orange-300" />
+                <div>
+                  <Label htmlFor="crop-toggle" className="font-semibold text-orange-900 dark:text-orange-100">Crop Before Upload</Label>
+                  <p className="text-sm text-orange-700 dark:text-orange-300 mt-0.5">
+                    Crop images to exact 1920×600px dimensions before uploading
+                  </p>
+                </div>
+              </div>
+              <Switch
+                id="crop-toggle"
+                checked={enableCropping}
+                onCheckedChange={setEnableCropping}
+              />
+            </div>
+
             {/* Auto-Optimize Toggle */}
             <div className="flex items-center justify-between p-3 border rounded-lg bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
               <div>
@@ -1093,6 +1138,20 @@ export default function ContentManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Image Cropper Dialog */}
+      <ImageCropper
+        open={cropperOpen}
+        onClose={() => {
+          setCropperOpen(false);
+          setPendingCropFile(null);
+        }}
+        imageFile={pendingCropFile}
+        onCropComplete={handleCropComplete}
+        aspectRatio={3.2}
+        targetWidth={1920}
+        targetHeight={600}
+      />
     </div>
   );
 }
