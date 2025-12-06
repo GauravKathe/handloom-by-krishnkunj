@@ -5,9 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Trash2, Plus, Pencil, Eye, EyeOff, Save, Settings2, Crop } from "lucide-react";
+import { Upload, Trash2, Plus, Pencil, Eye, EyeOff, Crop } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
 import { ImageCropper } from "@/components/ImageCropper";
 import {
   AlertDialog,
@@ -29,20 +28,13 @@ interface BannerSlide {
 
 export default function ContentManagement() {
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingCategory, setUploadingCategory] = useState(false);
-  const [imageSizeWarning, setImageSizeWarning] = useState<string | null>(null);
   const { toast } = useToast();
 
   const [bannerSlides, setBannerSlides] = useState<BannerSlide[]>([]);
-  const [showTextOverlay, setShowTextOverlay] = useState(true);
-  const [bannerBgColor, setBannerBgColor] = useState("#f5f0e8");
   const [showPreview, setShowPreview] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [autoOptimize, setAutoOptimize] = useState(true);
-  const [compressionQuality, setCompressionQuality] = useState(85);
   const [enableCropping, setEnableCropping] = useState(true);
   const [cropperOpen, setCropperOpen] = useState(false);
   const [pendingCropFile, setPendingCropFile] = useState<File | null>(null);
@@ -100,8 +92,6 @@ export default function ContentManagement() {
       const content = data.content as { 
         bannerImages?: string[]; 
         bannerSlides?: BannerSlide[];
-        showTextOverlay?: boolean;
-        bannerBgColor?: string;
       };
       
       if (content.bannerSlides) {
@@ -116,10 +106,6 @@ export default function ContentManagement() {
         }));
         setBannerSlides(slides);
       }
-      setShowTextOverlay(content.showTextOverlay !== false);
-      if (content.bannerBgColor) {
-        setBannerBgColor(content.bannerBgColor);
-      }
     }
   };
 
@@ -130,123 +116,6 @@ export default function ContentManagement() {
       .order("created_at", { ascending: false });
 
     setCategories(data || []);
-  };
-
-  const TARGET_WIDTH = 1280;
-  const TARGET_HEIGHT = 720;
-
-  const loadImageFromFile = (file: File): Promise<HTMLImageElement> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = reject;
-      img.src = URL.createObjectURL(file);
-    });
-  };
-
-  const validateImageDimensions = (file: File): Promise<{ width: number; height: number }> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        resolve({ width: img.width, height: img.height });
-        URL.revokeObjectURL(img.src);
-      };
-      img.src = URL.createObjectURL(file);
-    });
-  };
-
-  const optimizeImage = async (file: File): Promise<{ blob: Blob; wasOptimized: boolean; originalSize: { width: number; height: number }; newSize: { width: number; height: number } }> => {
-    const img = await loadImageFromFile(file);
-    const originalWidth = img.naturalWidth;
-    const originalHeight = img.naturalHeight;
-    
-    // Check if optimization is needed
-    const needsResize = originalWidth > TARGET_WIDTH || originalHeight > TARGET_HEIGHT * 1.5;
-    
-    if (!needsResize) {
-      URL.revokeObjectURL(img.src);
-      return {
-        blob: file,
-        wasOptimized: false,
-        originalSize: { width: originalWidth, height: originalHeight },
-        newSize: { width: originalWidth, height: originalHeight }
-      };
-    }
-
-    // Calculate new dimensions while maintaining aspect ratio
-    let newWidth = originalWidth;
-    let newHeight = originalHeight;
-    
-    // Scale down to fit within target dimensions
-    if (originalWidth > TARGET_WIDTH) {
-      const ratio = TARGET_WIDTH / originalWidth;
-      newWidth = TARGET_WIDTH;
-      newHeight = Math.round(originalHeight * ratio);
-    }
-    
-    // If still too tall, scale down further
-    if (newHeight > TARGET_HEIGHT * 1.5) {
-      const ratio = (TARGET_HEIGHT * 1.5) / newHeight;
-      newHeight = Math.round(TARGET_HEIGHT * 1.5);
-      newWidth = Math.round(newWidth * ratio);
-    }
-
-    // Create canvas and draw resized image
-    const canvas = document.createElement('canvas');
-    canvas.width = newWidth;
-    canvas.height = newHeight;
-    const ctx = canvas.getContext('2d');
-    
-    if (!ctx) {
-      URL.revokeObjectURL(img.src);
-      return {
-        blob: file,
-        wasOptimized: false,
-        originalSize: { width: originalWidth, height: originalHeight },
-        newSize: { width: originalWidth, height: originalHeight }
-      };
-    }
-
-    // Use high-quality image smoothing
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(img, 0, 0, newWidth, newHeight);
-    
-    URL.revokeObjectURL(img.src);
-
-    // Convert to blob with configurable quality
-    return new Promise((resolve) => {
-      const quality = compressionQuality / 100;
-      canvas.toBlob(
-        (blob) => {
-          resolve({
-            blob: blob || file,
-            wasOptimized: !!blob,
-            originalSize: { width: originalWidth, height: originalHeight },
-            newSize: { width: newWidth, height: newHeight }
-          });
-        },
-        file.type === 'image/png' ? 'image/png' : 'image/jpeg',
-        quality
-      );
-    });
-  };
-
-  const getImageSizeWarning = (width: number, height: number): string | null => {
-    const aspectRatio = width / height;
-    const warnings: string[] = [];
-    
-    if (width < 1200) {
-      warnings.push(`Width (${width}px) is below recommended 1280px`);
-    }
-    if (height < 600 || height > 800) {
-      warnings.push(`Height (${height}px) is outside recommended 720px range`);
-    }
-    if (aspectRatio < 1.5 || aspectRatio > 2) {
-      warnings.push(`Aspect ratio (${aspectRatio.toFixed(2)}:1) is outside recommended 16:9 (1.78:1)`);
-    }
-    
-    return warnings.length > 0 ? warnings.join('. ') : null;
   };
 
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -283,52 +152,14 @@ export default function ContentManagement() {
     await processAndUploadBanner(file);
   };
 
-  const processAndUploadBanner = async (fileOrBlob: Blob, skipOptimize = false) => {
+  const processAndUploadBanner = async (fileOrBlob: Blob) => {
     setUploadingImage(true);
-
-    let uploadBlob: Blob = fileOrBlob;
-    let finalWidth: number;
-    let finalHeight: number;
-    const originalSize = fileOrBlob.size;
-
-    // Auto-optimize if enabled and not skipping (cropped images are already optimized)
-    if (autoOptimize && !skipOptimize) {
-      const result = await optimizeImage(fileOrBlob as File);
-      uploadBlob = result.blob;
-      finalWidth = result.newSize.width;
-      finalHeight = result.newSize.height;
-
-      if (result.wasOptimized) {
-        const savedKB = Math.round((originalSize - result.blob.size) / 1024);
-        toast({
-          title: "Image optimized",
-          description: `Resized from ${result.originalSize.width}×${result.originalSize.height} to ${result.newSize.width}×${result.newSize.height}. Saved ${savedKB}KB.`,
-        });
-      }
-    } else {
-      // Just validate without optimizing
-      const { width, height } = await validateImageDimensions(fileOrBlob as File);
-      finalWidth = width;
-      finalHeight = height;
-    }
-
-    // Check for warnings on final dimensions
-    const warning = getImageSizeWarning(finalWidth, finalHeight);
-    setImageSizeWarning(warning);
-    
-    if (warning && !autoOptimize && !skipOptimize) {
-      toast({
-        title: "Image dimension warning",
-        description: warning,
-        variant: "destructive",
-      });
-    }
 
     const fileName = `banner-${Date.now()}.jpg`;
 
     const { data, error } = await supabase.storage
       .from("site-content")
-      .upload(fileName, uploadBlob);
+      .upload(fileName, fileOrBlob);
 
     if (error) {
       toast({
@@ -362,8 +193,7 @@ export default function ContentManagement() {
       title: "Image cropped",
       description: `Cropped to ${dimensions.width}×${dimensions.height}px`,
     });
-    // Skip optimization since cropper already outputs optimal dimensions
-    await processAndUploadBanner(croppedBlob, true);
+    await processAndUploadBanner(croppedBlob);
   };
 
   const removeBannerSlide = async (index: number) => {
@@ -375,27 +205,9 @@ export default function ContentManagement() {
     await saveBanners(newSlides);
   };
 
-  const updateSlideText = (index: number, field: 'title' | 'subtitle', value: string) => {
-    const newSlides = [...bannerSlides];
-    newSlides[index] = { ...newSlides[index], [field]: value };
-    setBannerSlides(newSlides);
-    setHasUnsavedChanges(true);
-  };
-
-  const saveSlideText = async () => {
-    setSaving(true);
-    await saveBanners(bannerSlides, showTextOverlay, bannerBgColor);
-    setHasUnsavedChanges(false);
-    setSaving(false);
-  };
-
-  const saveBanners = async (slides: BannerSlide[], textOverlay?: boolean, bgColor?: string) => {
-    const overlay = textOverlay !== undefined ? textOverlay : showTextOverlay;
-    const backgroundColor = bgColor !== undefined ? bgColor : bannerBgColor;
+  const saveBanners = async (slides: BannerSlide[]) => {
     const contentData = { 
-      bannerSlides: slides.map(s => ({ image: s.image, title: s.title, subtitle: s.subtitle })), 
-      showTextOverlay: overlay,
-      bannerBgColor: backgroundColor
+      bannerSlides: slides.map(s => ({ image: s.image, title: s.title, subtitle: s.subtitle }))
     };
     
     const { data: existing } = await supabase
@@ -427,16 +239,6 @@ export default function ContentManagement() {
     } else {
       toast({ title: "Banners updated successfully" });
     }
-  };
-
-  const handleTextOverlayToggle = async (checked: boolean) => {
-    setShowTextOverlay(checked);
-    await saveBanners(bannerSlides, checked, bannerBgColor);
-  };
-
-  const handleBgColorChange = async (color: string) => {
-    setBannerBgColor(color);
-    setHasUnsavedChanges(true);
   };
 
   const handleCategoryImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -611,82 +413,10 @@ export default function ContentManagement() {
           <CardTitle>Homepage Banners</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Text Overlay Toggle */}
-          <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
-            <div>
-              <Label htmlFor="text-overlay-toggle" className="font-semibold">Show Text Overlay</Label>
-              <p className="text-sm text-muted-foreground mt-1">
-                Toggle to show/hide title, subtitle, and button on banner images
-              </p>
-            </div>
-            <Switch
-              id="text-overlay-toggle"
-              checked={showTextOverlay}
-              onCheckedChange={handleTextOverlayToggle}
-            />
-          </div>
-
-          {/* Background Color Picker */}
-          <div className="p-4 border rounded-lg bg-muted/50 space-y-3">
-            <div>
-              <Label htmlFor="banner-bg-color" className="font-semibold">Banner Background Color</Label>
-              <p className="text-sm text-muted-foreground mt-1">
-                Fill color for empty space around banner images
-              </p>
-            </div>
-            
-            {/* Preset Colors */}
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm text-muted-foreground mr-2">Presets:</span>
-              {[
-                { name: "Warm Beige", color: "#f5f0e8" },
-                { name: "Cream", color: "#fffef5" },
-                { name: "White", color: "#ffffff" },
-                { name: "Light Gray", color: "#f4f4f5" },
-                { name: "Warm Gray", color: "#e7e5e4" },
-                { name: "Dark", color: "#1c1917" },
-              ].map((preset) => (
-                <button
-                  key={preset.color}
-                  onClick={() => handleBgColorChange(preset.color)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full border-2 transition-all text-sm ${
-                    bannerBgColor === preset.color 
-                      ? 'border-primary bg-primary/10' 
-                      : 'border-border hover:border-primary/50'
-                  }`}
-                  title={preset.name}
-                >
-                  <div 
-                    className="w-4 h-4 rounded-full border border-border/50"
-                    style={{ backgroundColor: preset.color }}
-                  />
-                  <span className="hidden sm:inline">{preset.name}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* Custom Color Picker */}
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">Custom:</span>
-              <div 
-                className="w-8 h-8 rounded-lg border-2 border-border shadow-sm"
-                style={{ backgroundColor: bannerBgColor }}
-              />
-              <Input
-                id="banner-bg-color"
-                type="color"
-                value={bannerBgColor}
-                onChange={(e) => handleBgColorChange(e.target.value)}
-                className="w-14 h-8 p-1 cursor-pointer"
-              />
-              <span className="text-sm font-mono text-muted-foreground">{bannerBgColor}</span>
-            </div>
-          </div>
-
-          {/* Banner Slides with Text Editing */}
+          {/* Banner Slides Display */}
           <div className="space-y-4">
             {bannerSlides.map((slide, idx) => (
-              <div key={idx} className="p-4 border rounded-lg space-y-3">
+              <div key={idx} className="p-4 border rounded-lg">
                 <div className="flex items-start gap-4">
                   <div className="relative group flex-shrink-0">
                     <img
@@ -703,38 +433,14 @@ export default function ContentManagement() {
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
-                  <div className="flex-1 space-y-3">
-                    <div>
-                      <Label htmlFor={`title-${idx}`} className="text-sm">Title</Label>
-                      <Input
-                        id={`title-${idx}`}
-                        value={slide.title}
-                        onChange={(e) => updateSlideText(idx, 'title', e.target.value)}
-                        placeholder="Enter banner title"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor={`subtitle-${idx}`} className="text-sm">Subtitle</Label>
-                      <Input
-                        id={`subtitle-${idx}`}
-                        value={slide.subtitle}
-                        onChange={(e) => updateSlideText(idx, 'subtitle', e.target.value)}
-                        placeholder="Enter banner subtitle"
-                      />
-                    </div>
+                  <div className="flex-1">
+                    <p className="font-medium">Banner {idx + 1}</p>
+                    <p className="text-sm text-muted-foreground truncate">{slide.image}</p>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-
-          {/* Save Text Changes Button */}
-          {hasUnsavedChanges && (
-            <Button onClick={saveSlideText} disabled={saving} className="w-full">
-              <Save className="h-4 w-4 mr-2" />
-              {saving ? "Saving..." : "Save Text Changes"}
-            </Button>
-          )}
           
           {/* Upload New Banner with Guidelines */}
           <div className="mt-4 space-y-4">
@@ -745,7 +451,7 @@ export default function ContentManagement() {
                 <div>
                   <Label htmlFor="crop-toggle" className="font-semibold text-orange-900 dark:text-orange-100">Crop Before Upload</Label>
                   <p className="text-sm text-orange-700 dark:text-orange-300 mt-0.5">
-                    Crop images to exact 1920×600px dimensions before uploading
+                    Crop images to exact 1280×720px dimensions before uploading
                   </p>
                 </div>
               </div>
@@ -756,85 +462,28 @@ export default function ContentManagement() {
               />
             </div>
 
-            {/* Auto-Optimize Toggle */}
-            <div className="flex items-center justify-between p-3 border rounded-lg bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
-              <div>
-                <Label htmlFor="auto-optimize-toggle" className="font-semibold text-green-900 dark:text-green-100">Auto-Optimize Images</Label>
-                <p className="text-sm text-green-700 dark:text-green-300 mt-0.5">
-                  Automatically resize large images to 1920px width for faster loading
-                </p>
-              </div>
-              <Switch
-                id="auto-optimize-toggle"
-                checked={autoOptimize}
-                onCheckedChange={setAutoOptimize}
-              />
-            </div>
-
-            {/* Compression Quality Slider */}
-            {autoOptimize && (
-              <div className="p-4 border rounded-lg bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800 space-y-3">
-                <div className="flex items-center gap-2">
-                  <Settings2 className="h-4 w-4 text-purple-700 dark:text-purple-300" />
-                  <Label className="font-semibold text-purple-900 dark:text-purple-100">Compression Quality</Label>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-purple-600 dark:text-purple-400 min-w-[60px]">Smaller</span>
-                  <Slider
-                    value={[compressionQuality]}
-                    onValueChange={(value) => setCompressionQuality(value[0])}
-                    min={30}
-                    max={100}
-                    step={5}
-                    className="flex-1"
-                  />
-                  <span className="text-sm text-purple-600 dark:text-purple-400 min-w-[50px]">Better</span>
-                  <span className="font-mono text-sm font-semibold text-purple-800 dark:text-purple-200 min-w-[40px] text-right">{compressionQuality}%</span>
-                </div>
-                <p className="text-xs text-purple-600 dark:text-purple-400">
-                  {compressionQuality >= 80 
-                    ? "High quality - larger file size, best for detailed images"
-                    : compressionQuality >= 60 
-                      ? "Balanced - good quality with reasonable file size"
-                      : "Compressed - smaller file size, may lose some detail"}
-                </p>
-              </div>
-            )}
-
             {/* Dimension Guidelines */}
             <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
               <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">📐 Recommended Banner Dimensions</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 <div className="space-y-1">
                   <p className="font-medium text-blue-800 dark:text-blue-200">Optimal Size:</p>
-                  <p className="text-blue-700 dark:text-blue-300">1920 × 600 pixels (3.2:1 ratio)</p>
-                  <p className="text-blue-600 dark:text-blue-400 text-xs">Alternative: 1600 × 500 pixels</p>
+                  <p className="text-blue-700 dark:text-blue-300">1280 × 720 pixels (16:9 ratio)</p>
                 </div>
                 <div className="space-y-1">
                   <p className="font-medium text-blue-800 dark:text-blue-200">Requirements:</p>
                   <ul className="text-blue-700 dark:text-blue-300 space-y-0.5">
-                    <li>• Width: 1600-1920px for crisp display</li>
-                    <li>• Height: 500-600px for best fit</li>
                     <li>• Format: JPG, PNG, or WEBP</li>
-                    <li>• Max file size: 10MB (auto-optimized)</li>
+                    <li>• Max file size: 10MB</li>
                   </ul>
                 </div>
               </div>
               <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700">
                 <p className="text-xs text-blue-600 dark:text-blue-400">
-                  💡 <strong>Tip:</strong> Keep important content centered (middle 60%) as edges may be cropped on mobile. Use the background color option above to fill any empty space.
+                  💡 <strong>Tip:</strong> Keep important content centered as edges may be cropped on mobile.
                 </p>
               </div>
             </div>
-
-            {/* Image Size Warning */}
-            {imageSizeWarning && (
-              <div className="p-3 border rounded-lg bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-800">
-                <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  ⚠️ <strong>Warning:</strong> {imageSizeWarning}
-                </p>
-              </div>
-            )}
 
             {/* Upload Button */}
             <Label htmlFor="banner-upload" className="cursor-pointer">
@@ -885,31 +534,13 @@ export default function ContentManagement() {
               </div>
 
               {showPreview && bannerSlides[previewIndex] && (
-                <div className="border rounded-lg overflow-hidden" style={{ backgroundColor: bannerBgColor }}>
+                <div className="border rounded-lg overflow-hidden">
                   <div className="relative w-full flex justify-center">
                     <img 
                       src={bannerSlides[previewIndex].image} 
                       alt="Banner preview"
                       className="w-full h-auto max-h-[50vh] object-contain"
                     />
-                    {showTextOverlay && (
-                      <>
-                        <div className="absolute inset-0 bg-gradient-to-r from-primary/40 to-transparent" />
-                        <div className="absolute inset-0 flex items-center justify-center md:justify-start">
-                          <div className="text-center md:text-left px-4 md:px-16 max-w-3xl">
-                            <h2 className="text-xl md:text-4xl font-bold text-background mb-2 drop-shadow-lg">
-                              {bannerSlides[previewIndex].title}
-                            </h2>
-                            <p className="text-sm md:text-lg text-background/90 mb-4 drop-shadow-md">
-                              {bannerSlides[previewIndex].subtitle}
-                            </p>
-                            <Button size="sm" className="shadow-lg pointer-events-none">
-                              Explore Collection
-                            </Button>
-                          </div>
-                        </div>
-                      </>
-                    )}
                   </div>
                   
                   {bannerSlides.length > 1 && (
@@ -1148,9 +779,9 @@ export default function ContentManagement() {
         }}
         imageFile={pendingCropFile}
         onCropComplete={handleCropComplete}
-        aspectRatio={3.2}
-        targetWidth={1920}
-        targetHeight={600}
+        aspectRatio={16 / 9}
+        targetWidth={1280}
+        targetHeight={720}
       />
     </div>
   );
