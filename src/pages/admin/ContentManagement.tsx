@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Trash2, Plus, Pencil } from "lucide-react";
+import { Upload, Trash2, Plus, Pencil, Eye, EyeOff } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
@@ -28,6 +28,8 @@ export default function ContentManagement() {
 
   const [bannerImages, setBannerImages] = useState<string[]>([]);
   const [showTextOverlay, setShowTextOverlay] = useState<boolean>(true);
+  const [showPreview, setShowPreview] = useState<boolean>(false);
+  const [previewIndex, setPreviewIndex] = useState<number>(0);
   const [categories, setCategories] = useState<any[]>([]);
   const [newCategory, setNewCategory] = useState({
     name: "",
@@ -428,6 +430,84 @@ export default function ContentManagement() {
               Upload banner images for the homepage carousel. Images will be fully visible on all devices.
             </p>
           </div>
+
+          {/* Banner Preview Section */}
+          {bannerImages.length > 0 && (
+            <div className="mt-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold">Banner Preview</h3>
+                  <span className="text-sm text-muted-foreground">
+                    (See how it will appear on homepage)
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPreview(!showPreview)}
+                >
+                  {showPreview ? (
+                    <>
+                      <EyeOff className="h-4 w-4 mr-2" />
+                      Hide Preview
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="h-4 w-4 mr-2" />
+                      Show Preview
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {showPreview && (
+                <div className="border rounded-lg overflow-hidden bg-muted">
+                  <div className="relative w-full aspect-[16/9] md:aspect-[1920/600] overflow-hidden">
+                    <img 
+                      src={bannerImages[previewIndex]} 
+                      alt="Banner preview"
+                      className="absolute inset-0 w-full h-full object-contain md:object-cover"
+                    />
+                    {showTextOverlay && (
+                      <>
+                        <div className="absolute inset-0 bg-gradient-to-r from-primary/40 to-transparent" />
+                        <div className="absolute inset-0 flex items-center justify-center md:justify-start">
+                          <div className="text-center md:text-left px-4 md:px-16 max-w-3xl">
+                            <h2 className="text-xl md:text-4xl font-bold text-background mb-2 drop-shadow-lg">
+                              Elegance Woven With Love
+                            </h2>
+                            <p className="text-sm md:text-lg text-background/90 mb-4 drop-shadow-md">
+                              Discover the art of traditional handloom sarees
+                            </p>
+                            <Button size="sm" className="shadow-lg pointer-events-none">
+                              Explore Collection
+                            </Button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  
+                  {/* Preview Navigation */}
+                  {bannerImages.length > 1 && (
+                    <div className="flex items-center justify-center gap-2 p-3 bg-background/50">
+                      {bannerImages.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setPreviewIndex(idx)}
+                          className={`h-2 rounded-full transition-all ${
+                            previewIndex === idx 
+                              ? 'w-6 bg-primary' 
+                              : 'w-2 bg-muted-foreground/40 hover:bg-muted-foreground/70'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
