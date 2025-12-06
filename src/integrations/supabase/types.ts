@@ -175,10 +175,13 @@ export type Database = {
           id: string
           order_id: string
           price: number
+          product_color: string | null
           product_description: string | null
+          product_fabric: string | null
           product_id: string
           product_image: string | null
           product_name: string | null
+          product_sku: string | null
           quantity: number
           selected_add_ons: string[] | null
         }
@@ -187,10 +190,13 @@ export type Database = {
           id?: string
           order_id: string
           price: number
+          product_color?: string | null
           product_description?: string | null
+          product_fabric?: string | null
           product_id: string
           product_image?: string | null
           product_name?: string | null
+          product_sku?: string | null
           quantity: number
           selected_add_ons?: string[] | null
         }
@@ -199,10 +205,13 @@ export type Database = {
           id?: string
           order_id?: string
           price?: number
+          product_color?: string | null
           product_description?: string | null
+          product_fabric?: string | null
           product_id?: string
           product_image?: string | null
           product_name?: string | null
+          product_sku?: string | null
           quantity?: number
           selected_add_ons?: string[] | null
         }
@@ -283,6 +292,7 @@ export type Database = {
           offer_price: number | null
           original_price: number
           price: number
+          sku: string | null
           updated_at: string
         }
         Insert: {
@@ -300,6 +310,7 @@ export type Database = {
           offer_price?: number | null
           original_price?: number
           price: number
+          sku?: string | null
           updated_at?: string
         }
         Update: {
@@ -317,6 +328,7 @@ export type Database = {
           offer_price?: number | null
           original_price?: number
           price?: number
+          sku?: string | null
           updated_at?: string
         }
         Relationships: [
