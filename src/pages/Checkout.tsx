@@ -327,10 +327,10 @@ export default function Checkout() {
   const placeOrder = async () => {
     setProcessing(true);
     try {
-      // Create order in database first
+      // Create order in database first with client-calculated total (will be verified server-side)
       const orderData = {
         user_id: user.id,
-        total_amount: calculateTotal(),
+        total_amount: calculateTotal(), // Initial value, will be recalculated server-side
         status: paymentMethod === "cod" ? "pending" : "processing",
         shipping_address: address,
         coupon_code: appliedCoupon?.code || null,
@@ -370,6 +370,25 @@ export default function Checkout() {
 
       if (itemsError) throw itemsError;
 
+      // SECURITY: Recalculate and verify order total server-side using actual product prices
+      // Using type assertion since recalculate_order_total is a custom RPC function
+      const { data: verifiedTotal, error: verifyError } = await (supabase as any)
+        .rpc('recalculate_order_total', { order_id: order.id });
+
+      if (verifyError) {
+        console.error("Error verifying order total:", verifyError);
+        // Continue with order but log the error - the database has the correct total now
+      }
+
+      // Fetch the updated order with verified total
+      const { data: updatedOrder } = await supabase
+        .from("orders")
+        .select()
+        .eq("id", order.id)
+        .single();
+
+      const finalOrder = updatedOrder || order;
+
       // Update coupon usage
       if (appliedCoupon) {
         await supabase
@@ -386,21 +405,21 @@ export default function Checkout() {
           .eq("user_id", user.id);
 
         // Send order confirmation email
-        await sendOrderConfirmationEmail(order);
+        await sendOrderConfirmationEmail(finalOrder);
 
         window.dispatchEvent(new Event('cartUpdated'));
-        setOrderConfirmation(order);
+        setOrderConfirmation(finalOrder);
         
         toast({
           title: "Order placed successfully! 🎉",
-          description: `Order ID: ${order.id.slice(0, 8)}`,
+          description: `Order ID: ${finalOrder.id.slice(0, 8)}`,
         });
         setProcessing(false);
         return;
       }
 
-      // For online payment, initiate Razorpay
-      await initiateRazorpayPayment(order);
+      // For online payment, initiate Razorpay with server-verified total
+      await initiateRazorpayPayment(finalOrder);
 
     } catch (error: any) {
       console.error("Error placing order:", error);

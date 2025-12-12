@@ -10,6 +10,16 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, User, Package } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { z } from "zod";
+
+// Profile validation schema
+const profileSchema = z.object({
+  full_name: z.string().min(1, "Name is required").max(100, "Name too long"),
+  email: z.string().email("Invalid email address").max(255, "Email too long"),
+  mobile_number: z.string().regex(/^\d{10}$/, "Mobile number must be 10 digits"),
+  city: z.string().max(100, "City name too long"),
+  state: z.string().max(100, "State name too long"),
+});
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -72,26 +82,40 @@ export default function Profile() {
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
+    
+    // Validate profile data before submitting
+    try {
+      const validatedProfile = profileSchema.parse(profile);
+      setSaving(true);
 
-    const { error } = await supabase
-      .from("profiles")
-      .update(profile)
-      .eq("id", user.id);
+      const { error } = await supabase
+        .from("profiles")
+        .update(validatedProfile)
+        .eq("id", user.id);
 
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Success",
-        description: "Profile updated successfully",
-      });
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Profile updated successfully",
+        });
+      }
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        toast({
+          title: "Validation Error",
+          description: err.errors[0].message,
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   if (loading) {

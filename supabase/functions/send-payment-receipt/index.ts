@@ -24,6 +24,10 @@ const getCorsHeaders = (origin: string | null) => ({
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 });
 
+// Rate limiting configuration
+const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 5;
+
 interface PaymentReceiptRequest {
   email: string;
   name: string;
@@ -86,6 +90,28 @@ serve(async (req) => {
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Rate limiting check
+    const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
+    const { count: requestCount, error: countError } = await supabaseClient
+      .from('rate_limits')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('endpoint', 'send-payment-receipt')
+      .gte('created_at', windowStart);
+
+    if (!countError && requestCount !== null && requestCount >= MAX_REQUESTS_PER_WINDOW) {
+      console.log(`Rate limit exceeded for user ${user.id}`);
+      return new Response(
+        JSON.stringify({ error: "Too many requests. Please try again later." }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Record this request for rate limiting
+    await supabaseClient
+      .from('rate_limits')
+      .insert({ user_id: user.id, endpoint: 'send-payment-receipt' });
 
     const { email, name, orderId, paymentId, amount, paymentMethod, date }: PaymentReceiptRequest = await req.json();
 
