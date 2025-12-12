@@ -53,8 +53,10 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const checkAdminStatus = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     
-    if (user?.email === "handloombykrishnkunj@gmail.com") {
-      setIsAdmin(true);
+    if (user) {
+      const { data: hasAdminRole } = await supabase
+        .rpc('has_role', { _user_id: user.id, _role: 'admin' });
+      setIsAdmin(!!hasAdminRole);
     } else {
       setIsAdmin(false);
     }
@@ -84,8 +86,10 @@ const CustomerRoute = ({ children }: { children: React.ReactNode }) => {
   const checkAdminStatus = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     
-    if (user?.email === "handloombykrishnkunj@gmail.com") {
-      setIsAdmin(true);
+    if (user) {
+      const { data: hasAdminRole } = await supabase
+        .rpc('has_role', { _user_id: user.id, _role: 'admin' });
+      setIsAdmin(!!hasAdminRole);
     } else {
       setIsAdmin(false);
     }
