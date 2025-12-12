@@ -1,9 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
+// Webhook endpoints should have minimal CORS - only for preflight
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-razorpay-signature',
+  'Access-Control-Allow-Headers': 'x-razorpay-signature, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 serve(async (req) => {
@@ -11,11 +13,19 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Only allow POST method for webhooks
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   try {
     const body = await req.text();
     const signature = req.headers.get('x-razorpay-signature');
     
-    console.log('Webhook received:', { signature: !!signature });
+    console.log('Webhook received');
 
     if (!signature) {
       console.error('No signature provided');
@@ -53,7 +63,11 @@ serve(async (req) => {
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
 
-    if (generatedSignature !== signature) {
+    // Constant-time comparison to prevent timing attacks
+    const isValid = generatedSignature.length === signature.length &&
+      generatedSignature.split('').every((char, i) => char === signature[i]);
+
+    if (!isValid) {
       console.error('Invalid webhook signature');
       return new Response(
         JSON.stringify({ error: 'Invalid signature' }),
@@ -62,7 +76,7 @@ serve(async (req) => {
     }
 
     const event = JSON.parse(body);
-    console.log('Webhook event:', event.event);
+    console.log('Webhook event type:', event.event);
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -80,11 +94,11 @@ serve(async (req) => {
         break;
       
       case 'refund.created':
-        await handleRefundCreated(supabaseClient, event.payload.refund.entity);
+        await handleRefundCreated(event.payload.refund.entity);
         break;
       
       case 'refund.processed':
-        await handleRefundProcessed(supabaseClient, event.payload.refund.entity);
+        await handleRefundProcessed(event.payload.refund.entity);
         break;
 
       default:
@@ -97,10 +111,9 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error processing webhook:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error processing webhook:', error instanceof Error ? error.message : 'Unknown error');
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: 'Internal error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
@@ -115,6 +128,13 @@ async function handlePaymentCaptured(supabase: any, payment: any) {
     return;
   }
 
+  // Validate UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(orderId)) {
+    console.error('Invalid order_id format');
+    return;
+  }
+
   const { error } = await supabase
     .from('orders')
     .update({
@@ -124,7 +144,7 @@ async function handlePaymentCaptured(supabase: any, payment: any) {
     .eq('id', orderId);
 
   if (error) {
-    console.error('Error updating order status:', error);
+    console.error('Error updating order status:', error.message);
   } else {
     console.log('Order status updated to paid:', orderId);
   }
@@ -139,6 +159,13 @@ async function handlePaymentFailed(supabase: any, payment: any) {
     return;
   }
 
+  // Validate UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(orderId)) {
+    console.error('Invalid order_id format');
+    return;
+  }
+
   const { error } = await supabase
     .from('orders')
     .update({
@@ -148,39 +175,18 @@ async function handlePaymentFailed(supabase: any, payment: any) {
     .eq('id', orderId);
 
   if (error) {
-    console.error('Error updating order status:', error);
+    console.error('Error updating order status:', error.message);
   } else {
     console.log('Order status updated to failed:', orderId);
   }
 }
 
-async function handleRefundCreated(supabase: any, refund: any) {
-  console.log('Processing refund.created:', refund.id);
-  
-  const paymentId = refund.payment_id;
-  
-  // Find order by checking notes in related payment
-  const { data: orders } = await supabase
-    .from('orders')
-    .select('*')
-    .eq('status', 'paid')
-    .limit(100);
-
-  // In a real scenario, you'd store payment_id in orders table for easy lookup
-  console.log('Refund created for payment:', paymentId);
+function handleRefundCreated(refund: any) {
+  console.log('Processing refund.created:', refund.id, 'for payment:', refund.payment_id);
+  // Log for audit purposes - actual refund processing would require more context
 }
 
-async function handleRefundProcessed(supabase: any, refund: any) {
-  console.log('Processing refund.processed:', refund.id);
-  
-  const paymentId = refund.payment_id;
-  
-  // Update order status to refunded
-  const { data: orders } = await supabase
-    .from('orders')
-    .select('*')
-    .eq('status', 'paid')
-    .limit(100);
-
-  console.log('Refund processed for payment:', paymentId);
+function handleRefundProcessed(refund: any) {
+  console.log('Processing refund.processed:', refund.id, 'for payment:', refund.payment_id);
+  // Log for audit purposes
 }

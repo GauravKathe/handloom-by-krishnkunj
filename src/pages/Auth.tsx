@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,18 +12,41 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { z } from "zod";
 
+// Strong password requirements for security
+const passwordSchema = z.string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+  .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+  .regex(/[0-9]/, "Password must contain at least one number")
+  .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character");
+
+// Mobile number validation - Indian format
+const mobileSchema = z.string()
+  .regex(/^[6-9]\d{9}$/, "Please enter a valid 10-digit Indian mobile number");
+
 const signupSchema = z.object({
-  full_name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  mobile_number: z.string().min(10, "Mobile number must be at least 10 digits"),
-  city: z.string().min(2, "City is required"),
-  state: z.string().min(2, "State is required"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  full_name: z.string()
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name must be less than 100 characters")
+    .regex(/^[a-zA-Z\s]+$/, "Name should only contain letters and spaces"),
+  email: z.string()
+    .email("Invalid email address")
+    .max(255, "Email must be less than 255 characters"),
+  mobile_number: mobileSchema,
+  city: z.string()
+    .min(2, "City is required")
+    .max(100, "City must be less than 100 characters"),
+  state: z.string()
+    .min(2, "State is required")
+    .max(100, "State must be less than 100 characters"),
+  password: passwordSchema,
 });
 
 const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  email: z.string()
+    .email("Invalid email address")
+    .max(255, "Email must be less than 255 characters"),
+  password: z.string().min(1, "Password is required"),
 });
 
 export default function Auth() {
