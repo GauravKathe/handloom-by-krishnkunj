@@ -122,6 +122,31 @@ serve(async (req) => {
 async function handlePaymentCaptured(supabase: any, payment: any) {
   console.log('Processing payment.captured:', payment.id);
   
+  // REPLAY ATTACK PREVENTION: Check if this payment was already processed
+  const { data: alreadyProcessed, error: checkError } = await supabase
+    .rpc('check_webhook_processed', { p_payment_id: payment.id });
+
+  if (checkError) {
+    console.error('Error checking processed status:', checkError.message);
+  }
+
+  if (alreadyProcessed) {
+    console.log('Payment already processed, skipping:', payment.id);
+    return;
+  }
+
+  // Mark as processed BEFORE making changes (prevents race conditions)
+  const { error: markError } = await supabase
+    .rpc('mark_webhook_processed', { 
+      p_payment_id: payment.id, 
+      p_event_type: 'payment.captured' 
+    });
+
+  if (markError) {
+    console.error('Error marking payment as processed:', markError.message);
+    // Continue anyway - better to process twice than not at all
+  }
+
   const orderId = payment.notes?.order_id;
   if (!orderId) {
     console.error('No order_id in payment notes');
@@ -153,6 +178,21 @@ async function handlePaymentCaptured(supabase: any, payment: any) {
 async function handlePaymentFailed(supabase: any, payment: any) {
   console.log('Processing payment.failed:', payment.id);
   
+  // REPLAY ATTACK PREVENTION: Check if this payment was already processed
+  const { data: alreadyProcessed } = await supabase
+    .rpc('check_webhook_processed', { p_payment_id: payment.id });
+
+  if (alreadyProcessed) {
+    console.log('Payment failure already processed, skipping:', payment.id);
+    return;
+  }
+
+  // Mark as processed
+  await supabase.rpc('mark_webhook_processed', { 
+    p_payment_id: payment.id, 
+    p_event_type: 'payment.failed' 
+  });
+
   const orderId = payment.notes?.order_id;
   if (!orderId) {
     console.error('No order_id in payment notes');

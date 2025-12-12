@@ -71,6 +71,39 @@ export type Database = {
         }
         Relationships: []
       }
+      auth_events: {
+        Row: {
+          created_at: string
+          email: string | null
+          event_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       cart_items: {
         Row: {
           created_at: string
@@ -166,6 +199,30 @@ export type Database = {
           minimum_purchase_amount?: number
           status?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      login_attempts: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          ip_address: string | null
+          success: boolean
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          ip_address?: string | null
+          success?: boolean
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          ip_address?: string | null
+          success?: boolean
         }
         Relationships: []
       }
@@ -278,6 +335,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      processed_webhook_events: {
+        Row: {
+          event_type: string
+          id: string
+          payment_id: string
+          processed_at: string
+        }
+        Insert: {
+          event_type: string
+          id?: string
+          payment_id: string
+          processed_at?: string
+        }
+        Update: {
+          event_type?: string
+          id?: string
+          payment_id?: string
+          processed_at?: string
+        }
+        Relationships: []
       }
       products: {
         Row: {
@@ -471,12 +549,35 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_account_lockout: { Args: { p_email: string }; Returns: Json }
+      check_webhook_processed: {
+        Args: { p_payment_id: string }
+        Returns: boolean
+      }
+      cleanup_security_tables: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      log_auth_event: {
+        Args: {
+          p_email: string
+          p_event_type: string
+          p_metadata?: Json
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      mark_webhook_processed: {
+        Args: { p_event_type: string; p_payment_id: string }
+        Returns: boolean
+      }
+      record_login_attempt: {
+        Args: { p_email: string; p_ip_address?: string; p_success: boolean }
+        Returns: undefined
       }
     }
     Enums: {

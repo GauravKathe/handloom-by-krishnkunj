@@ -38,6 +38,7 @@ import CouponAnalytics from "./pages/admin/CouponAnalytics";
 import ActivityLog from "./pages/admin/ActivityLog";
 import RoleManagement from "./pages/admin/RoleManagement";
 import MarqueeBannerAdmin from "./pages/admin/MarqueeBanner";
+import AuthEvents from "./pages/admin/AuthEvents";
 
 const queryClient = new QueryClient();
 
@@ -147,6 +148,7 @@ const App = () => (
             <Route path="marquee-banner" element={<MarqueeBannerAdmin />} />
             <Route path="analytics" element={<AdminAnalytics />} />
             <Route path="payment-analytics" element={<PaymentAnalytics />} />
+            <Route path="auth-events" element={<AuthEvents />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>
           
