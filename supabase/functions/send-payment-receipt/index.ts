@@ -1,12 +1,28 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+// Security: Restrict CORS to specific origins
+const getAllowedOrigin = (origin: string | null): string => {
+  const allowedOrigins = [
+    Deno.env.get('SITE_URL') || '',
+    'https://lovable.dev',
+    'https://lqhvsafeatkgaxxvyeje.supabase.co'
+  ].filter(Boolean);
+  
+  if (origin && allowedOrigins.some(allowed => origin.startsWith(allowed))) {
+    return origin;
+  }
+  return allowedOrigins[0] || '*';
 };
+
+const getCorsHeaders = (origin: string | null) => ({
+  'Access-Control-Allow-Origin': getAllowedOrigin(origin),
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+});
 
 interface PaymentReceiptRequest {
   email: string;
@@ -18,18 +34,79 @@ interface PaymentReceiptRequest {
   date: string;
 }
 
+// Sanitize HTML to prevent XSS in email
+const escapeHtml = (text: string): string => {
+  if (!text) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+};
+
 serve(async (req) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Only allow POST method
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ error: "Method not allowed" }),
+      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   try {
+    // Verify user authentication
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      console.error('No authorization header provided');
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+      console.error('User authentication failed');
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { email, name, orderId, paymentId, amount, paymentMethod, date }: PaymentReceiptRequest = await req.json();
+
+    // Validate email
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return new Response(
+        JSON.stringify({ error: "Invalid email" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Sanitize all user inputs
+    const safeName = escapeHtml(name || 'Customer');
+    const safeOrderId = escapeHtml(orderId?.slice(0, 8) || '');
+    const safePaymentId = escapeHtml(paymentId?.slice(0, 20) || '');
+    const safePaymentMethod = escapeHtml(paymentMethod || 'online');
 
     const emailResponse = await resend.emails.send({
       from: "HandloomByKrishnKunj <onboarding@resend.dev>",
       to: [email],
-      subject: `Payment Receipt - ${orderId.slice(0, 8)}`,
+      subject: `Payment Receipt - ${safeOrderId}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -39,11 +116,11 @@ serve(async (req) => {
         </head>
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-            <h1 style="color: white; margin: 0;">Payment Successful ✓</h1>
+            <h1 style="color: white; margin: 0;">Payment Successful</h1>
           </div>
           
           <div style="background: #fff; padding: 30px; border: 1px solid #ddd; border-top: none; border-radius: 0 0 10px 10px;">
-            <p style="font-size: 16px;">Dear ${name},</p>
+            <p style="font-size: 16px;">Dear ${safeName},</p>
             
             <p>Your payment has been successfully processed. Here are the details:</p>
             
@@ -53,29 +130,29 @@ serve(async (req) => {
               <table style="width: 100%; margin-top: 20px;">
                 <tr>
                   <td style="padding: 10px 0; border-bottom: 1px solid #eee;"><strong>Order ID:</strong></td>
-                  <td style="padding: 10px 0; text-align: right; border-bottom: 1px solid #eee;">${orderId.slice(0, 8)}</td>
+                  <td style="padding: 10px 0; text-align: right; border-bottom: 1px solid #eee;">${safeOrderId}</td>
                 </tr>
                 <tr>
                   <td style="padding: 10px 0; border-bottom: 1px solid #eee;"><strong>Payment ID:</strong></td>
-                  <td style="padding: 10px 0; text-align: right; border-bottom: 1px solid #eee;">${paymentId.slice(0, 20)}...</td>
+                  <td style="padding: 10px 0; text-align: right; border-bottom: 1px solid #eee;">${safePaymentId}...</td>
                 </tr>
                 <tr>
                   <td style="padding: 10px 0; border-bottom: 1px solid #eee;"><strong>Payment Method:</strong></td>
-                  <td style="padding: 10px 0; text-align: right; border-bottom: 1px solid #eee; text-transform: uppercase;">${paymentMethod}</td>
+                  <td style="padding: 10px 0; text-align: right; border-bottom: 1px solid #eee; text-transform: uppercase;">${safePaymentMethod}</td>
                 </tr>
                 <tr>
                   <td style="padding: 10px 0; border-bottom: 1px solid #eee;"><strong>Date & Time:</strong></td>
-                  <td style="padding: 10px 0; text-align: right; border-bottom: 1px solid #eee;">${new Date(date).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</td>
+                  <td style="padding: 10px 0; text-align: right; border-bottom: 1px solid #eee;">${new Date(date || Date.now()).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</td>
                 </tr>
                 <tr>
                   <td style="padding: 15px 0 10px 0;"><strong style="font-size: 18px;">Amount Paid:</strong></td>
-                  <td style="padding: 15px 0 10px 0; text-align: right;"><strong style="font-size: 20px; color: #4CAF50;">₹${amount.toLocaleString()}</strong></td>
+                  <td style="padding: 15px 0 10px 0; text-align: right;"><strong style="font-size: 20px; color: #4CAF50;">₹${Number(amount).toLocaleString()}</strong></td>
                 </tr>
               </table>
             </div>
 
             <div style="background: #E8F5E9; border-left: 4px solid #4CAF50; padding: 15px; margin: 20px 0;">
-              <p style="margin: 0;"><strong>✓ Payment Confirmed</strong></p>
+              <p style="margin: 0;"><strong>Payment Confirmed</strong></p>
               <p style="margin: 10px 0 0 0;">Your order is now being processed and will be shipped soon.</p>
             </div>
 
@@ -99,16 +176,16 @@ serve(async (req) => {
       `,
     });
 
-    console.log("Payment receipt email sent:", emailResponse);
+    console.log("Payment receipt email sent for order:", safeOrderId);
 
-    return new Response(JSON.stringify({ success: true, emailId: emailResponse.data?.id }), {
+    return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error: any) {
-    console.error("Error sending payment receipt:", error);
+  } catch (error) {
+    console.error("Error sending payment receipt:", error instanceof Error ? error.message : 'Unknown error');
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: "Failed to send email" }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
