@@ -7,8 +7,10 @@
   For security reasons, provide the admin JWT via environment variable or CLI argument.
 */
 
-const fetch = require('node-fetch');
-const argv = require('minimist')(process.argv.slice(2));
+import fetch from 'node-fetch';
+import minimist from 'minimist';
+
+const argv = minimist(process.argv.slice(2));
 
 const SUPABASE_URL = argv.supabaseUrl || process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = argv.anonKey || process.env.SUPABASE_ANON_KEY;

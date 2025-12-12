@@ -12,8 +12,10 @@
   Ensure service role key is present in a secure environment like GitHub Actions secrets.
 */
 
-const fetch = require('node-fetch');
-const argv = require('minimist')(process.argv.slice(2));
+import fetch from 'node-fetch';
+import minimist from 'minimist';
+
+const argv = minimist(process.argv.slice(2));
 
 const SUPABASE_URL = argv.supabaseUrl || process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = argv.anonKey || process.env.SUPABASE_ANON_KEY;
