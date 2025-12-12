@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
+import { stripHtml } from "@/lib/htmlUtils";
 
 interface ProductCardProps {
   product: any;
@@ -18,6 +19,8 @@ export const ProductCard = ({ product }: ProductCardProps) => {
   const discountPercentage = hasDiscount
     ? Math.round(((originalPrice - offerPrice) / originalPrice) * 100)
     : 0;
+
+  const plainDescription = stripHtml(product.description);
 
   return (
     <Link to={`/product/${product.id}`} className="group">
@@ -71,7 +74,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
               {product.name}
             </h3>
             <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
-              {product.description}
+              {plainDescription}
             </p>
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2 flex-wrap">
