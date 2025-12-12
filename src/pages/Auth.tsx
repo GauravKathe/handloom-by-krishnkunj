@@ -1,9 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { z } from "zod";
+import { AlertCircle, Lock, Mail, ArrowLeft } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Strong password requirements for security
 const passwordSchema = z.string()
@@ -49,10 +50,19 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+const resetEmailSchema = z.object({
+  email: z.string()
+    .email("Invalid email address")
+    .max(255, "Email must be less than 255 characters"),
+});
+
 export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [lockoutInfo, setLockoutInfo] = useState<{ locked: boolean; unlock_at?: string } | null>(null);
 
   // Signup form
   const [signupData, setSignupData] = useState({
@@ -94,6 +104,66 @@ export default function Auth() {
     checkAuthAndRedirect();
   }, [navigate]);
 
+  // Check account lockout status before login
+  const checkLockout = async (email: string): Promise<boolean> => {
+    try {
+      const { data, error } = await (supabase as any)
+        .rpc('check_account_lockout', { p_email: email });
+
+      if (error) {
+        console.error('Error checking lockout:', error);
+        return false;
+      }
+
+      if (data?.locked) {
+        const unlockTime = new Date(data.unlock_at);
+        const remainingMinutes = Math.ceil((unlockTime.getTime() - Date.now()) / 60000);
+        setLockoutInfo({ locked: true, unlock_at: data.unlock_at });
+        toast({
+          title: "Account Temporarily Locked",
+          description: `Too many failed attempts. Try again in ${remainingMinutes} minutes.`,
+          variant: "destructive",
+        });
+        return true;
+      }
+
+      setLockoutInfo(null);
+      return false;
+    } catch (error) {
+      console.error('Lockout check error:', error);
+      return false;
+    }
+  };
+
+  // Record login attempt
+  const recordLoginAttempt = async (email: string, success: boolean) => {
+    try {
+      await (supabase as any)
+        .rpc('record_login_attempt', { 
+          p_email: email, 
+          p_success: success,
+          p_ip_address: null // IP would need server-side detection
+        });
+    } catch (error) {
+      console.error('Error recording login attempt:', error);
+    }
+  };
+
+  // Log auth event
+  const logAuthEvent = async (userId: string | null, email: string, eventType: string, metadata: object = {}) => {
+    try {
+      await (supabase as any)
+        .rpc('log_auth_event', {
+          p_user_id: userId,
+          p_email: email,
+          p_event_type: eventType,
+          p_metadata: metadata
+        });
+    } catch (error) {
+      console.error('Error logging auth event:', error);
+    }
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -117,6 +187,9 @@ export default function Auth() {
 
       if (error) throw error;
 
+      // Log signup event
+      await logAuthEvent(data.user?.id || null, validated.email, 'signup_success');
+
       toast({
         title: "Account created successfully!",
         description: "You can now log in to your account.",
@@ -134,6 +207,8 @@ export default function Auth() {
           variant: "destructive",
         });
       } else {
+        // Log failed signup
+        await logAuthEvent(null, signupData.email, 'signup_failed', { error: error.message });
         toast({
           title: "Error",
           description: error.message || "Failed to create account",
@@ -152,24 +227,39 @@ export default function Auth() {
     try {
       const validated = loginSchema.parse(loginData);
 
-      const { error } = await supabase.auth.signInWithPassword({
+      // Check if account is locked
+      const isLocked = await checkLockout(validated.email);
+      if (isLocked) {
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: validated.email,
         password: validated.password,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Record failed attempt
+        await recordLoginAttempt(validated.email, false);
+        await logAuthEvent(null, validated.email, 'login_failed', { error: error.message });
+        throw error;
+      }
+
+      // Record successful attempt and log event
+      await recordLoginAttempt(validated.email, true);
+      await logAuthEvent(data.user?.id || null, validated.email, 'login_success');
 
       toast({
         title: "Welcome back!",
       });
 
       // Check if user is admin and redirect accordingly
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
+      if (data.user) {
         const { data: roleData } = await supabase
           .from("user_roles")
           .select("role")
-          .eq("user_id", user.id)
+          .eq("user_id", data.user.id)
           .eq("role", "admin")
           .single();
         
@@ -200,6 +290,48 @@ export default function Auth() {
     }
   };
 
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const validated = resetEmailSchema.parse({ email: resetEmail });
+
+      const { error } = await supabase.auth.resetPasswordForEmail(validated.email, {
+        redirectTo: `${window.location.origin}/auth?reset=true`,
+      });
+
+      if (error) throw error;
+
+      // Log password reset request
+      await logAuthEvent(null, validated.email, 'password_reset_requested');
+
+      toast({
+        title: "Reset Email Sent",
+        description: "Check your email for a password reset link.",
+      });
+
+      setShowResetPassword(false);
+      setResetEmail("");
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Validation Error",
+          description: error.errors[0].message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to send reset email",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGoogleLogin = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -217,6 +349,57 @@ export default function Auth() {
     }
   };
 
+  // Password Reset Form
+  if (showResetPassword) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+
+        <main className="flex-1 flex items-center justify-center py-12 px-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl font-bold text-primary">Reset Password</CardTitle>
+              <CardDescription>Enter your email to receive a reset link</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handlePasswordReset} className="space-y-4">
+                <div>
+                  <Label htmlFor="reset-email">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="reset-email"
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      className="pl-10"
+                      placeholder="your@email.com"
+                      required
+                    />
+                  </div>
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Sending..." : "Send Reset Link"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => setShowResetPassword(false)}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Login
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </main>
+
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -228,6 +411,18 @@ export default function Auth() {
             <CardDescription>Join our community of saree lovers</CardDescription>
           </CardHeader>
           <CardContent>
+            {lockoutInfo?.locked && (
+              <Alert variant="destructive" className="mb-4">
+                <Lock className="h-4 w-4" />
+                <AlertDescription>
+                  Account temporarily locked due to too many failed attempts.
+                  {lockoutInfo.unlock_at && (
+                    <span> Try again at {new Date(lockoutInfo.unlock_at).toLocaleTimeString()}</span>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
+
             <Tabs defaultValue="login">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Login</TabsTrigger>
@@ -257,8 +452,16 @@ export default function Auth() {
                       required
                     />
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button type="submit" className="w-full" disabled={loading || lockoutInfo?.locked}>
                     {loading ? "Logging in..." : "Login"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="w-full text-sm"
+                    onClick={() => setShowResetPassword(true)}
+                  >
+                    Forgot your password?
                   </Button>
                 </form>
 
@@ -355,6 +558,9 @@ export default function Auth() {
                       onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
                       required
                     />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Min 8 chars with uppercase, lowercase, number & special character
+                    </p>
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? "Creating account..." : "Create Account"}
