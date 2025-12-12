@@ -1,91 +1,71 @@
-# Step-by-Step Deployment Guide: Netlify & Hostinger
+# Step-by-Step Deployment Guide: Vercel & Hostinger
 
-This guide covers how to deploy your React frontend to Netlify and connect your custom domain from Hostinger.
+This guide covers how to deploy your React frontend to Vercel and connect your custom domain from Hostinger.
 
 ## Prerequisite: Preparation
-1.  **Codebase**: Ensure your latest code is pushed to your Git repository (GitHub/GitLab/Bitbucket).
-2.  **Environment Variables**: Have your `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` ready. You can find these in your `.env` file or Supabase Dashboard.
-3.  **Redirects**: We have already created a `public/_redirects` file for you. This is crucial for your app to work correctly when users refresh the page.
+1.  **Codebase**: Ensure your latest code is pushed to your Git repository (GitHub).
+2.  **Environment Variables**: Have your `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` ready.
+3.  **Routing**: We have added a `vercel.json` file to handle routing properly.
 
 ---
 
-## Part 1: Deploy Frontend to Netlify
+## Part 1: Deploy Frontend to Vercel
 
-1.  **Log in to Netlify**: Go to [netlify.com](https://www.netlify.com/) and log in.
-2.  **Add New Site**:
-    *   Click **"Add new site"** > **"Import from existing project"**.
-    *   Select your Git provider (e.g., **GitHub**).
-    *   Authorize Netlify and select your repository (`handloom-by-krishnkunj`).
-3.  **Configure Build Settings**:
-    *   **Team**: Select your team.
-    *   **Branch to deploy**: `main` (or `master`).
-    *   **Base directory**: (Leave empty).
-    *   **Build command**: `npm run build`
-    *   **Publish directory**: `dist`
-4.  **Add Environment Variables** (Critical Step):
-    *   Click **"Add environment variables"**.
-    *   Add the following keys and values from your local `.env` file:
-        *   `VITE_SUPABASE_URL`: (Your Supabase URL)
-        *   `VITE_SUPABASE_PUBLISHABLE_KEY`: (Your public API key)
-5.  **Deploy**: Click **"Deploy site"**.
-    *   Netlify will start building your site. This may take 1-3 minutes.
-    *   Once finished, you will get a URL like `https://random-name-123.netlify.app`. Open it to verify the site works (login, browse products).
+1.  **Log in to Vercel**: Go to [vercel.com](https://vercel.com/) and log in (use your GitHub account).
+2.  **Add New Project**:
+    *   Click **"Add New..."** > **"Project"**.
+    *   Import your `handloom-by-krishnkunj` repository from GitHub.
+3.  **Configure Project**:
+    *   **Framework Preset**: It should auto-detect "Vite". If not, select it manually.
+    *   **Root Directory**: Leave as `./`.
+    *   **Environment Variables** (Critical):
+        *   Expand the **"Environment Variables"** section.
+        *   Add `VITE_SUPABASE_URL` = `(Your Supabase URL)`
+        *   Add `VITE_SUPABASE_PUBLISHABLE_KEY` = `(Your Public Key)`
+4.  **Deploy**: Click **"Deploy"**.
+    *   Vercel will build your site. Wait about a minute.
+    *   Once done, you will see a preview URL like `https://handloom-by-krishnkunj.vercel.app`. Visit it to verify the site works.
 
 ---
 
 ## Part 2: Connect Hostinger Domain
 
-1.  **Netlify Domain Setup**:
-    *   Go to **Site configuration** > **Domain management** in your Netlify dashboard.
-    *   Click **"Add a domain"**.
-    *   Enter your domain name (e.g., `handloombykrishnkunj.com`).
-    *   Click **"Verify"** > **"Add domain"**.
-    *   Netlify will check the DNS. It will tell you to **"Check DNS configuration"**.
+1.  **Vercel Domain Setup**:
+    *   Go to your project Dashboard on Vercel.
+    *   Click **"Settings"** > **"Domains"**.
+    *   Enter your domain: `handloombykrishnkunj.com`.
+    *   Click **"Add"**.
+    *   Select the option recommended (usually `Add handloombykrishnkunj.com` and it will also suggest `www`).
+    *   Vercel will show you the **DNS Records** you need to add (an A record and a CNAME record).
 
 2.  **Hostinger DNS Configuration**:
-    *   Log in to your **Hostinger** account.
-    *   Go to **Domains** > **Manage** (for your specific domain).
-    *   On the sidebar, find **DNS / Nameservers**.
-    *   You have two options (Choose **Option A** for best compatibility if you use Hostinger Email):
-
-    ### Option A: Point via CNAME & A Record (Recommended)
-    *   **Delete** any existing A records for `@` (Parked) if they exist.
+    *   Log in to **Hostinger** > **Domains** > **Manage** (for your domain).
+    *   Go to **DNS / Nameservers**.
+    *   **Delete** any existing A records for `@` (Parked) or those pointing to Netlify (75.2.60.5).
     *   **Add/Edit A Record**:
         *   **Type**: `A`
         *   **Name**: `@`
-        *   **Points to**: `75.2.60.5` (Netlify Load Balancer)
-        *   **TTL**: 3600 (or default)
+        *   **Points to**: `76.76.21.21` (Vercel IP)
+        *   **TTL**: 3600
     *   **Add/Edit CNAME Record**:
         *   **Type**: `CNAME`
         *   **Name**: `www`
-        *   **Points to**: `[your-site-name].netlify.app` (Copy your Netlify site URL *without* https://)
+        *   **Points to**: `cname.vercel-dns.com`
         *   **TTL**: 3600
 
-    ### Option B: Use Netlify Nameservers (Easier, but manages Email DNS on Netlify)
-    *   In Netlify Domain Management, click **"Set up Netlify DNS"**.
-    *   Netlify will give you 4 Nameservers (e.g., `dns1.p01.nsone.net`, `dns2...`).
-    *   In Hostinger, go to **Nameservers** > **Change Nameservers**.
-    *   Select **Change nameservers** and paste the 4 lines from Netlify.
-    *   Save. *Note: This moves all DNS management to Netlify.*
-
 3.  **Verification**:
-    *   Go back to Netlify and confirm.
-    *   **HTTPS/SSL**: Netlify automatically provisions a free SSL certificate (HTTPS). This might take up to 24 hours to active after DNS propagation, but usually happens within an hour.
+    *   Go back to Vercel. It might take a few minutes to verify.
+    *   Once both `@` and `www` show as "Valid Configuration" with a green checkmark, SSL generation will succeed automatically.
 
 ---
 
-## Part 3: Backend Verification (Supabase)
+## Part 3: Update Supabase Auth URL
 
-Since your frontend domain is changing (from `localhost` or `lovable.dev` to `handloombykrishnkunj.com`), you **MUST** update your Supabase Auth settings.
+Changing deployment providers means your domain URL might change temporarily (or permanently if you use the Vercel default domain).
 
-1.  Go to your **Supabase Dashboard**.
-2.  Navigate to **Authentication** > **URL Configuration**.
-3.  **Site URL**: Change this to your new domain: `https://handloombykrishnkunj.com`.
-4.  **Redirect URLs**: Add your new domain URLs to the allow list:
-    *   `https://handloombykrishnkunj.com/**`
-    *   `https://www.handloombykrishnkunj.com/**`
-5.  **Edge Functions**:
-    *   If you deployed Edge Functions, ensure you updated the `SITE_URL` secret if it's used for CORS.
-    *   Command: `supabase secrets set SITE_URL=https://handloombykrishnkunj.com` (run this locally if you have the CLI, or set it in the Dashboard under Edge Functions > Secrets).
+1.  Go to **Supabase Dashboard**.
+2.  **Authentication** > **URL Configuration**.
+3.  Ensure **Site URL** matches your main domain: `https://handloombykrishnkunj.com`.
+4.  Add your temporary Vercel URL (e.g., `https://handloom-by-krishnkunj.vercel.app/**`) to **Redirect URLs** if you want to test on the Vercel subdomain before the main domain propagates.
 
-Your site should now be live and fully functional!
+Your site is now live on Vercel!
