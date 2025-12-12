@@ -80,12 +80,17 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
       StarterKit.configure({
         bulletList: {
           HTMLAttributes: {
-            class: 'list-disc list-inside space-y-1',
+            class: 'list-disc pl-6 space-y-1',
           },
         },
         orderedList: {
           HTMLAttributes: {
-            class: 'list-decimal list-inside space-y-1',
+            class: 'list-decimal pl-6 space-y-1',
+          },
+        },
+        listItem: {
+          HTMLAttributes: {
+            class: '[&>p]:inline [&>p]:m-0',
           },
         },
         heading: {
@@ -119,7 +124,7 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none min-h-[120px] p-3 focus:outline-none [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6',
+        class: 'prose prose-sm max-w-none min-h-[120px] p-3 focus:outline-none [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li>p]:inline [&_li>p]:m-0',
       },
     },
   });

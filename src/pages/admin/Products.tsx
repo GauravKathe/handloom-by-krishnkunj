@@ -464,7 +464,7 @@ export default function AdminProducts() {
                     <div className="space-y-2">
                       <p className="text-xs font-medium text-primary">Product Detail Page:</p>
                       <div 
-                        className="prose prose-sm max-w-none text-foreground/80 [&>ul]:list-disc [&>ul]:list-inside [&>ul]:space-y-1 [&>ol]:list-decimal [&>ol]:list-inside [&>ol]:space-y-1 [&>p]:leading-relaxed bg-background p-3 rounded border text-sm"
+                        className="prose prose-sm max-w-none text-foreground/80 [&>ul]:list-disc [&>ul]:pl-6 [&>ul]:space-y-1 [&>ol]:list-decimal [&>ol]:pl-6 [&>ol]:space-y-1 [&>p]:leading-relaxed [&_li>p]:inline [&_li>p]:m-0 bg-background p-3 rounded border text-sm"
                         dangerouslySetInnerHTML={{ __html: formData.description }}
                       />
                     </div>
