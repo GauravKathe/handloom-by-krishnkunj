@@ -32,7 +32,9 @@ import {
   Underline as UnderlineIcon,
   Strikethrough,
   Upload,
-  Loader2
+  Loader2,
+  Indent,
+  Outdent
 } from 'lucide-react';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -80,13 +82,17 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
       StarterKit.configure({
         bulletList: {
           HTMLAttributes: {
-            class: 'list-disc pl-6 space-y-1',
+            class: 'list-disc pl-6 space-y-1 [&_ul]:list-[circle] [&_ul_ul]:list-[square]',
           },
+          keepMarks: true,
+          keepAttributes: false,
         },
         orderedList: {
           HTMLAttributes: {
             class: 'list-decimal pl-6 space-y-1',
           },
+          keepMarks: true,
+          keepAttributes: false,
         },
         listItem: {
           HTMLAttributes: {
@@ -124,7 +130,7 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none min-h-[120px] p-3 focus:outline-none [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li>p]:inline [&_li>p]:m-0',
+        class: 'prose prose-sm max-w-none min-h-[120px] p-3 focus:outline-none [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li>p]:inline [&_li>p]:m-0 [&_ul_ul]:list-[circle] [&_ul_ul_ul]:list-[square] [&_ul_ul]:mt-1 [&_ol_ol]:mt-1',
       },
     },
   });
@@ -419,6 +425,28 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
           title="Numbered List"
         >
           <ListOrdered className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().sinkListItem('listItem').run()}
+          disabled={!editor.can().sinkListItem('listItem')}
+          className="h-8 w-8 p-0"
+          title="Indent (Tab)"
+        >
+          <Indent className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().liftListItem('listItem').run()}
+          disabled={!editor.can().liftListItem('listItem')}
+          className="h-8 w-8 p-0"
+          title="Outdent (Shift+Tab)"
+        >
+          <Outdent className="h-4 w-4" />
         </Button>
         <div className="w-px h-6 bg-border mx-1 self-center" />
         

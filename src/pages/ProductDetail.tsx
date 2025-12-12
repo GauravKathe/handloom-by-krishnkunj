@@ -454,7 +454,7 @@ export default function ProductDetail() {
             })()}
 
             <div 
-              className="prose prose-sm max-w-none text-foreground/80 [&>ul]:list-disc [&>ul]:pl-6 [&>ul]:space-y-2 [&>ol]:list-decimal [&>ol]:pl-6 [&>ol]:space-y-2 [&>p]:leading-relaxed [&_li>p]:inline [&_li>p]:m-0"
+              className="prose prose-sm max-w-none text-foreground/80 [&>ul]:list-disc [&>ul]:pl-6 [&>ul]:space-y-2 [&>ol]:list-decimal [&>ol]:pl-6 [&>ol]:space-y-2 [&>p]:leading-relaxed [&_li>p]:inline [&_li>p]:m-0 [&_ul_ul]:list-[circle] [&_ul_ul_ul]:list-[square] [&_ul_ul]:mt-1 [&_ol_ol]:mt-1"
               dangerouslySetInnerHTML={{ __html: product.description || '' }}
             />
 
