@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { stripHtml } from "@/lib/htmlUtils";
 
 export const MarqueeBanner = () => {
   const [content, setContent] = useState<string>("Welcome to our store! Free shipping on orders over ₹2000");
@@ -65,15 +66,18 @@ export const MarqueeBanner = () => {
 
   if (!content || !isVisible || !isEnabled) return null;
 
+  // Strip HTML tags for plain text display in marquee
+  const plainTextContent = stripHtml(content);
+
   return (
     <div className="bg-primary text-primary-foreground py-2 overflow-hidden relative">
       <div className="flex animate-marquee">
-        <span className="flex-shrink-0 px-4">{content}</span>
-        <span className="flex-shrink-0 px-4">{content}</span>
-        <span className="flex-shrink-0 px-4">{content}</span>
-        <span className="flex-shrink-0 px-4">{content}</span>
-        <span className="flex-shrink-0 px-4">{content}</span>
-        <span className="flex-shrink-0 px-4">{content}</span>
+        <span className="flex-shrink-0 px-4">{plainTextContent}</span>
+        <span className="flex-shrink-0 px-4">{plainTextContent}</span>
+        <span className="flex-shrink-0 px-4">{plainTextContent}</span>
+        <span className="flex-shrink-0 px-4">{plainTextContent}</span>
+        <span className="flex-shrink-0 px-4">{plainTextContent}</span>
+        <span className="flex-shrink-0 px-4">{plainTextContent}</span>
       </div>
       <Button
         variant="ghost"

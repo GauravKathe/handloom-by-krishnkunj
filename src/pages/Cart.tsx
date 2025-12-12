@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, Plus, Minus } from "lucide-react";
+import { stripHtml } from "@/lib/htmlUtils";
 
 export default function Cart() {
   const navigate = useNavigate();
@@ -182,7 +183,7 @@ export default function Cart() {
                       </div>
 
                       <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                        {item.products.description}
+                        {stripHtml(item.products.description)}
                       </p>
 
                       {/* Add-ons Display */}
