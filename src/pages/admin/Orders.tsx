@@ -7,7 +7,7 @@ import { Search, Eye, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import * as XLSX from 'xlsx';
+import { exportToCsvFile } from '@/utils/exportCsv';
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -83,7 +83,7 @@ export default function AdminOrders() {
     return matchesSearch && matchesStatus && matchesFromDate && matchesToDate;
   });
 
-  const exportToExcel = () => {
+  const exportToCsv = () => {
     try {
       // Prepare order data with full shipping address and ordered items
       const orderExportData = filteredOrders.map(order => {
@@ -137,22 +137,13 @@ export default function AdminOrders() {
         });
       });
 
-      // Create workbook
-      const wb = XLSX.utils.book_new();
+      // Export Orders Summary CSV
+      const ordersFileName = `Orders_${new Date().toISOString().split('T')[0]}.csv`;
+      exportToCsvFile(orderExportData, ordersFileName);
 
-      // Add Orders Summary sheet
-      const ordersWS = XLSX.utils.json_to_sheet(orderExportData);
-      XLSX.utils.book_append_sheet(wb, ordersWS, 'Orders Summary');
-
-      // Add Order Items Details sheet
-      const itemsWS = XLSX.utils.json_to_sheet(itemsExportData);
-      XLSX.utils.book_append_sheet(wb, itemsWS, 'Order Items');
-
-      // Generate file name with current date
-      const fileName = `Orders_${new Date().toISOString().split('T')[0]}.xlsx`;
-      
-      // Write file
-      XLSX.writeFile(wb, fileName);
+      // Export Order Items CSV
+      const itemsFileName = `Order_Items_${new Date().toISOString().split('T')[0]}.csv`;
+      exportToCsvFile(itemsExportData, itemsFileName);
       
       toast({
         title: "Export Successful",
@@ -179,7 +170,7 @@ export default function AdminOrders() {
           <h1 className="text-3xl font-bold">Order Management</h1>
           <p className="text-muted-foreground">Track and manage customer orders</p>
         </div>
-        <Button onClick={exportToExcel} className="gap-2">
+        <Button onClick={exportToCsv} className="gap-2">
           <Download className="h-4 w-4" />
           Export to Excel
         </Button>

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Search, Mail, Phone, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import * as XLSX from 'xlsx';
+import { exportToCsvFile } from '@/utils/exportCsv';
 
 export default function AdminCustomers() {
   const [customers, setCustomers] = useState<any[]>([]);
@@ -92,7 +92,7 @@ export default function AdminCustomers() {
     return matchesSearch && matchesFromDate && matchesToDate;
   });
 
-  const exportToExcel = () => {
+  const exportToCsv = () => {
     try {
       // Prepare data for export
       const exportData = filteredCustomers.map(customer => ({
@@ -105,18 +105,10 @@ export default function AdminCustomers() {
         'Joined Date': new Date(customer.created_at).toLocaleDateString()
       }));
 
-      // Create workbook and worksheet
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(exportData);
-
-      // Add worksheet to workbook
-      XLSX.utils.book_append_sheet(wb, ws, 'Customers');
-
       // Generate file name with current date
-      const fileName = `Customers_${new Date().toISOString().split('T')[0]}.xlsx`;
-      
-      // Write file
-      XLSX.writeFile(wb, fileName);
+      const fileName = `Customers_${new Date().toISOString().split('T')[0]}.csv`;
+
+      exportToCsvFile(exportData, fileName);
       
       toast({
         title: "Export Successful",
@@ -143,7 +135,7 @@ export default function AdminCustomers() {
           <h1 className="text-3xl font-bold">Customer Management</h1>
           <p className="text-muted-foreground">View and manage registered customers</p>
         </div>
-        <Button onClick={exportToExcel} className="gap-2">
+          <Button onClick={exportToCsv} className="gap-2">
           <Download className="h-4 w-4" />
           Export to Excel
         </Button>

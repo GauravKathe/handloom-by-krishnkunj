@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Package, ShoppingCart, Users, TrendingUp, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import * as XLSX from 'xlsx';
+import { exportToCsvFile } from '@/utils/exportCsv';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -127,43 +127,29 @@ export default function AdminDashboard() {
     }
   };
 
-  const exportToExcel = async () => {
+  const exportToCsv = async () => {
     try {
       // Create workbook
-      const wb = XLSX.utils.book_new();
-
-      // Dashboard Stats Sheet
-      const statsData = [
-        ['Dashboard Statistics', ''],
-        ['Metric', 'Value'],
-        ['Total Orders', stats.totalOrders],
-        ['Total Revenue', `₹${stats.totalRevenue.toLocaleString()}`],
-        ['Total Customers', stats.totalCustomers],
-        ['Inventory Count', stats.inventoryCount],
+      // Dashboard Statistics CSV
+      const statsRows = [
+        { Metric: 'Total Orders', Value: stats.totalOrders },
+        { Metric: 'Total Revenue', Value: `₹${stats.totalRevenue.toLocaleString()}` },
+        { Metric: 'Total Customers', Value: stats.totalCustomers },
+        { Metric: 'Inventory Count', Value: stats.inventoryCount },
       ];
-      const statsWS = XLSX.utils.aoa_to_sheet(statsData);
-      XLSX.utils.book_append_sheet(wb, statsWS, 'Statistics');
+      const statsFileName = `Dashboard_Statistics_${new Date().toISOString().split('T')[0]}.csv`;
+      exportToCsvFile(statsRows, statsFileName);
 
-      // Recent Orders Sheet
-      const ordersData = [
-        ['Recent Orders'],
-        ['Customer Name', 'Email', 'Amount', 'Status', 'Date'],
-        ...recentOrders.map(order => [
-          order.profiles?.full_name || 'Unknown',
-          order.profiles?.email || 'N/A',
-          `₹${Number(order.total_amount).toLocaleString()}`,
-          order.status,
-          new Date(order.created_at).toLocaleDateString()
-        ])
-      ];
-      const ordersWS = XLSX.utils.aoa_to_sheet(ordersData);
-      XLSX.utils.book_append_sheet(wb, ordersWS, 'Recent Orders');
-
-      // Generate file name with current date
-      const fileName = `Dashboard_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
-      
-      // Write file
-      XLSX.writeFile(wb, fileName);
+      // Recent Orders CSV
+      const ordersRows = recentOrders.map(order => ({
+        'Customer Name': order.profiles?.full_name || 'Unknown',
+        'Email': order.profiles?.email || 'N/A',
+        'Amount': `₹${Number(order.total_amount).toLocaleString()}`,
+        'Status': order.status,
+        'Date': new Date(order.created_at).toLocaleDateString()
+      }));
+      const ordersFileName = `Dashboard_Recent_Orders_${new Date().toISOString().split('T')[0]}.csv`;
+      exportToCsvFile(ordersRows, ordersFileName);
       
       toast({
         title: "Export Successful",
@@ -194,7 +180,7 @@ export default function AdminDashboard() {
           <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard Overview</h1>
           <p className="text-muted-foreground">Welcome to your admin dashboard</p>
         </div>
-        <Button onClick={exportToExcel} className="gap-2">
+          <Button onClick={exportToCsv} className="gap-2">
           <Download className="h-4 w-4" />
           Export to Excel
         </Button>

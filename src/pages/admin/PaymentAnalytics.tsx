@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Download, CreditCard, TrendingUp, Users, DollarSign } from "lucide-react";
-import * as XLSX from 'xlsx';
+import { exportToCsvFile } from '@/utils/exportCsv';
 
 export default function PaymentAnalytics() {
   const navigate = useNavigate();
@@ -94,7 +94,7 @@ export default function PaymentAnalytics() {
     }
   };
 
-  const exportToExcel = () => {
+  const exportToCsv = () => {
     const exportData = transactions.map(transaction => ({
       'Order ID': transaction.id.slice(0, 8),
       'Customer': transaction.profiles?.full_name || 'N/A',
@@ -106,10 +106,8 @@ export default function PaymentAnalytics() {
       'Coupon': transaction.coupon_code || 'None'
     }));
 
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Transactions");
-    XLSX.writeFile(wb, `payment-analytics-${new Date().toISOString().split('T')[0]}.xlsx`);
+    const fileName = `payment-analytics-${new Date().toISOString().split('T')[0]}.csv`;
+    exportToCsvFile(exportData, fileName);
 
     toast({ title: "Excel file downloaded successfully" });
   };
@@ -140,7 +138,7 @@ export default function PaymentAnalytics() {
           <h1 className="text-3xl font-bold">Payment Analytics</h1>
           <p className="text-muted-foreground">Track revenue, transactions, and payment trends</p>
         </div>
-        <Button onClick={exportToExcel} className="gap-2">
+        <Button onClick={exportToCsv} className="gap-2">
           <Download className="h-4 w-4" />
           Export Report
         </Button>
