@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { RichTextEditor } from "@/components/RichTextEditor";
+import { stripHtml } from "@/lib/htmlUtils";
 
 export default function MarqueeBannerAdmin() {
   const [content, setContent] = useState("");
@@ -129,34 +130,22 @@ export default function MarqueeBannerAdmin() {
           </div>
           
           <div className="bg-muted p-4 rounded-md">
-            <p className="text-sm font-medium mb-2">Preview:</p>
+            <p className="text-sm font-medium mb-2">Live Preview:</p>
             {isEnabled ? (
               <div className="bg-primary text-primary-foreground py-2 overflow-hidden rounded">
                 <div className="flex animate-marquee">
-                  <span 
-                    className="flex-shrink-0 px-4 [&_*]:inline"
-                    dangerouslySetInnerHTML={{ __html: content || "Your text here..." }}
-                  />
-                  <span 
-                    className="flex-shrink-0 px-4 [&_*]:inline"
-                    dangerouslySetInnerHTML={{ __html: content || "Your text here..." }}
-                  />
-                  <span 
-                    className="flex-shrink-0 px-4 [&_*]:inline"
-                    dangerouslySetInnerHTML={{ __html: content || "Your text here..." }}
-                  />
-                  <span 
-                    className="flex-shrink-0 px-4 [&_*]:inline"
-                    dangerouslySetInnerHTML={{ __html: content || "Your text here..." }}
-                  />
-                  <span 
-                    className="flex-shrink-0 px-4 [&_*]:inline"
-                    dangerouslySetInnerHTML={{ __html: content || "Your text here..." }}
-                  />
-                  <span 
-                    className="flex-shrink-0 px-4 [&_*]:inline"
-                    dangerouslySetInnerHTML={{ __html: content || "Your text here..." }}
-                  />
+                  <span className="flex-shrink-0 px-4">
+                    {stripHtml(content) || "Your text here..."}
+                  </span>
+                  <span className="flex-shrink-0 px-4">
+                    {stripHtml(content) || "Your text here..."}
+                  </span>
+                  <span className="flex-shrink-0 px-4">
+                    {stripHtml(content) || "Your text here..."}
+                  </span>
+                  <span className="flex-shrink-0 px-4">
+                    {stripHtml(content) || "Your text here..."}
+                  </span>
                 </div>
               </div>
             ) : (
@@ -164,6 +153,9 @@ export default function MarqueeBannerAdmin() {
                 Banner is currently disabled
               </div>
             )}
+            <p className="text-xs text-muted-foreground mt-2">
+              Note: The marquee displays plain text only. HTML formatting is stripped for cleaner display.
+            </p>
           </div>
 
           <Button onClick={handleSave} disabled={loading || !getPlainText(content)}>

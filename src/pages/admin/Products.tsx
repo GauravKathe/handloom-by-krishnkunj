@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Search, Edit, Trash2, Package, Upload, X } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Package, Upload, X, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { RichTextEditor } from "@/components/RichTextEditor";
+import { stripHtml } from "@/lib/htmlUtils";
 
 export default function AdminProducts() {
   const [products, setProducts] = useState<any[]>([]);
@@ -25,6 +26,7 @@ export default function AdminProducts() {
   const [productToDelete, setProductToDelete] = useState<any>(null);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [showDescriptionPreview, setShowDescriptionPreview] = useState(false);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -430,16 +432,54 @@ export default function AdminProducts() {
                   required
                 />
               </div>
-              <div>
-                <Label htmlFor="description">Description *</Label>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="description">Description *</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowDescriptionPreview(!showDescriptionPreview)}
+                    className="h-7 text-xs"
+                  >
+                    {showDescriptionPreview ? <EyeOff className="h-3 w-3 mr-1" /> : <Eye className="h-3 w-3 mr-1" />}
+                    {showDescriptionPreview ? "Hide Preview" : "Show Preview"}
+                  </Button>
+                </div>
                 <RichTextEditor
                   value={formData.description}
                   onChange={(value) => setFormData({ ...formData, description: value })}
                   placeholder="Enter product description..."
                 />
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground">
                   Use the toolbar to format text and create bullet points
                 </p>
+                
+                {/* Live Preview Panel */}
+                {showDescriptionPreview && formData.description && (
+                  <div className="border rounded-lg p-4 bg-card/50 space-y-3">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Live Preview</p>
+                    
+                    {/* Product Detail Page Preview */}
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-primary">Product Detail Page:</p>
+                      <div 
+                        className="prose prose-sm max-w-none text-foreground/80 [&>ul]:list-disc [&>ul]:list-inside [&>ul]:space-y-1 [&>ol]:list-decimal [&>ol]:list-inside [&>ol]:space-y-1 [&>p]:leading-relaxed bg-background p-3 rounded border text-sm"
+                        dangerouslySetInnerHTML={{ __html: formData.description }}
+                      />
+                    </div>
+                    
+                    {/* Product Card Preview */}
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-primary">Shop Card Preview:</p>
+                      <div className="bg-background p-3 rounded border">
+                        <p className="text-muted-foreground text-sm line-clamp-2">
+                          {stripHtml(formData.description)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
