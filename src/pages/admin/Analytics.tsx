@@ -22,10 +22,10 @@ export default function AdminAnalytics() {
     totalCustomers: 0,
     averageOrderValue: 0,
   });
-  const [salesData, setSalesData] = useState<any[]>([]);
-  const [topProducts, setTopProducts] = useState<any[]>([]);
-  const [categoryData, setCategoryData] = useState<any[]>([]);
-  const [couponData, setCouponData] = useState<any[]>([]);
+  const [salesData, setSalesData] = useState<{ date: string; revenue: number }[]>([]);
+  const [topProducts, setTopProducts] = useState<{ name: string; units: number }[]>([]);
+  const [categoryData, setCategoryData] = useState<{ name: string; revenue: number }[]>([]);
+  const [couponData, setCouponData] = useState<{ code: string; uses: number; revenue: number }[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {

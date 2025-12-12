@@ -59,30 +59,62 @@ const escapeHtml = (text: string): string => {
     .replace(/'/g, '&#039;');
 };
 
+const securityHeaders = {
+  'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin'
+};
+
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
 
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: { ...corsHeaders, ...securityHeaders } });
   }
 
   // Only allow POST method
   if (req.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: "Method not allowed" }),
-      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 405, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
   try {
+    // CSRF check
+    const xsrfHeader = req.headers.get('x-csrf-token');
+    const xsrfCookie = (() => {
+      const cookies = req.headers.get('cookie') || '';
+      const match = cookies.split(';').map(s => s.trim()).find(c => c.startsWith('XSRF-TOKEN='));
+      return match ? match.split('=')[1] : null;
+    })();
+    if (!xsrfHeader || !xsrfCookie || xsrfHeader !== xsrfCookie) return new Response(JSON.stringify({ error: 'CSRF token missing or invalid' }), { status: 403, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } });
+
+    // Rate-limit by IP
+    try {
+      const { globalRateLimiter } = await import('../utils/rate-limit.ts');
+      const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+      const rate = globalRateLimiter.check(ip);
+      if (!rate.ok) return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), { status: 429, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } });
+    } catch (e) {
+      console.warn('Rate limiter unavailable', e instanceof Error ? e.message : e);
+    }
+
     // Verify user authentication
-    const authHeader = req.headers.get('authorization');
+    let authHeader = req.headers.get('authorization') || '';
+    if (!authHeader) {
+      const cookies = req.headers.get('cookie') || '';
+      const match = cookies.split(';').map(s => s.trim()).find(c => c.startsWith('sb_jwt='));
+      const token = match ? match.split('=')[1] : null;
+      if (token) authHeader = `Bearer ${token}`;
+    }
     if (!authHeader) {
       console.error('No authorization header provided');
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 401, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -97,7 +129,7 @@ serve(async (req) => {
       console.error('User authentication failed');
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 401, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -114,7 +146,7 @@ serve(async (req) => {
       console.log(`Rate limit exceeded for user ${user.id}`);
       return new Response(
         JSON.stringify({ error: "Too many requests. Please try again later." }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 429, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -129,7 +161,7 @@ serve(async (req) => {
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return new Response(
         JSON.stringify({ error: "Invalid email" }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -226,7 +258,7 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("Error sending order confirmation:", error instanceof Error ? error.message : 'Unknown error');
@@ -234,7 +266,7 @@ serve(async (req) => {
       JSON.stringify({ error: "Failed to send email" }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
       }
     );
   }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import type { Coupon as CouponType } from '@/types';
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,16 +13,6 @@ import { useActivityLog } from "@/hooks/useActivityLog";
 import { Plus, Pencil, Trash2, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 
-interface Coupon {
-  id: string;
-  code: string;
-  discount_percentage: number;
-  expiry_date: string;
-  minimum_purchase_amount: number;
-  max_usage_limit: number;
-  current_usage_count: number;
-  status: string;
-}
 
 interface CouponStats {
   code: string;
@@ -31,11 +22,11 @@ interface CouponStats {
 }
 
 export default function AdminCoupons() {
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [coupons, setCoupons] = useState<CouponType[]>([]);
   const [couponStats, setCouponStats] = useState<CouponStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
+  const [editingCoupon, setEditingCoupon] = useState<CouponType | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
   const { logActivity } = useActivityLog();
@@ -125,42 +116,35 @@ export default function AdminCoupons() {
       status: formData.status,
     };
 
-    if (editingCoupon) {
-      const oldData = { ...editingCoupon };
-      const { error } = await supabase
-        .from("coupons")
-        .update(couponData)
-        .eq("id", editingCoupon.id);
-
-      if (error) {
-        toast({
-          title: "Error updating coupon",
-          description: error.message,
-          variant: "destructive",
+    try {
+      if (editingCoupon) {
+        const oldData = { ...editingCoupon };
+        const { data: resp, error } = await supabase.functions.invoke('admin-manage-coupons', {
+          body: { action: 'update', coupon: { ...couponData, id: editingCoupon.id } }
         });
+
+        if (error) throw error;
+
+        await logActivity('update', 'coupon', editingCoupon.id, oldData, couponData);
+        toast({ title: 'Coupon updated successfully' });
+        setDialogOpen(false);
+        resetForm();
+        loadCoupons();
       } else {
-        await logActivity("update", "coupon", editingCoupon.id, oldData, couponData);
-        toast({ title: "Coupon updated successfully" });
+        const { data: resp, error } = await supabase.functions.invoke('admin-manage-coupons', {
+          body: { action: 'create', coupon: couponData }
+        });
+
+        if (error) throw error;
+
+        await logActivity('create', 'coupon', resp?.coupon?.id || null, null, couponData);
+        toast({ title: 'Coupon created successfully' });
         setDialogOpen(false);
         resetForm();
         loadCoupons();
       }
-    } else {
-      const { data, error } = await supabase.from("coupons").insert(couponData).select().single();
-
-      if (error) {
-        toast({
-          title: "Error creating coupon",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        await logActivity("create", "coupon", data?.id || null, null, couponData);
-        toast({ title: "Coupon created successfully" });
-        setDialogOpen(false);
-        resetForm();
-        loadCoupons();
-      }
+    } catch (err: any) {
+      toast({ title: 'Error', description: err?.message || 'Admin authorization required', variant: 'destructive' });
     }
   };
 
@@ -181,40 +165,42 @@ export default function AdminCoupons() {
     if (!confirm("Are you sure you want to delete this coupon?")) return;
 
     const coupon = coupons.find(c => c.id === id);
-    const { error } = await supabase.from("coupons").delete().eq("id", id);
-
-    if (error) {
+    try {
+      const { error } = await supabase.functions.invoke('admin-manage-coupons', { body: { action: 'delete', coupon: { id } } });
+      if (error) throw error;
+      await logActivity("delete", "coupon", id, coupon, null);
+      toast({ title: "Coupon deleted successfully" });
+      loadCoupons();
+      return;
+    } catch (err: any) {
       toast({
         title: "Error deleting coupon",
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      await logActivity("delete", "coupon", id, coupon, null);
-      toast({ title: "Coupon deleted successfully" });
-      loadCoupons();
     }
   };
 
   const toggleStatus = async (coupon: Coupon) => {
     const newStatus = coupon.status === "active" ? "inactive" : "active";
     const oldData = { status: coupon.status };
-    
-    const { error } = await supabase
-      .from("coupons")
-      .update({ status: newStatus })
-      .eq("id", coupon.id);
 
-    if (error) {
-      toast({
-        title: "Error updating status",
-        description: error.message,
-        variant: "destructive",
+    try {
+      const { error } = await supabase.functions.invoke('admin-manage-coupons', {
+        body: { action: 'update', coupon: { id: coupon.id, status: newStatus } }
       });
-    } else {
+
+      if (error) throw error;
+
       await logActivity("update", "coupon", coupon.id, oldData, { status: newStatus });
       toast({ title: "Status updated successfully" });
       loadCoupons();
+    } catch (err: any) {
+      toast({
+        title: "Error updating status",
+        description: err?.message || 'Admin authorization required',
+        variant: "destructive",
+      });
     }
   };
 

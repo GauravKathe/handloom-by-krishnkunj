@@ -195,8 +195,18 @@ export default function Auth() {
         description: "You can now log in to your account.",
       });
 
-      // Auto login after signup
+      // Auto login after signup - set cookie on server for cookie-based session
       if (data.session) {
+        try {
+          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auth-set-cookie`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: data.session.access_token, expires_in: data.session.expires_at || null })
+          });
+        } catch (e) {
+          console.warn('Failed to set auth cookie', e instanceof Error ? e.message : e);
+        }
         navigate("/");
       }
     } catch (error: any) {
@@ -253,6 +263,20 @@ export default function Auth() {
       toast({
         title: "Welcome back!",
       });
+
+      // Set cookie on server for cookie-based session
+      if (data.session) {
+        try {
+          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auth-set-cookie`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: data.session.access_token, expires_in: data.session.expires_at || null })
+          });
+        } catch (e) {
+          console.warn('Failed to set auth cookie', e instanceof Error ? e.message : e);
+        }
+      }
 
       // Check if user is admin and redirect accordingly
       if (data.user) {

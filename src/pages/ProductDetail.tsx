@@ -154,7 +154,7 @@ export default function ProductDetail() {
       const scale = distance / initialPinchDistance;
       const newZoomLevel = Math.min(Math.max(initialZoomLevel * scale, 1), 4);
       setZoomLevel(newZoomLevel);
-      
+
       if (newZoomLevel <= 1) {
         setPosition({ x: 0, y: 0 });
       }
@@ -284,12 +284,37 @@ export default function ProductDetail() {
                     <div className="relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-secondary/10 to-primary/10 group">
                       <img
                         src={image}
-                        alt={`${product.name} - Image ${index + 1}`}
+                        alt={`${product.name} - Authentic Paithani Saree - View ${index + 1}`}
                         className="w-full h-full object-cover transition-transform duration-300 rounded-lg"
+                        loading="lazy"
                       />
 
-                      <div 
-                        className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm rounded-full p-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 z-50 cursor-pointer" 
+                      {/* JSON-LD Structured Data for Product */}
+                      <script type="application/ld+json" dangerouslySetInnerHTML={{
+                        __html: JSON.stringify({
+                          "@context": "https://schema.org/",
+                          "@type": "Product",
+                          "name": product.name,
+                          "image": product.images || [],
+                          "description": product.description ? product.description.replace(/<[^>]*>?/gm, "") : `Buy ${product.name}, a premium handmade Paithani saree.`,
+                          "sku": product.id,
+                          "brand": {
+                            "@type": "Brand",
+                            "name": "Handloom by KrishnKunj"
+                          },
+                          "offers": {
+                            "@type": "Offer",
+                            "url": window.location.href,
+                            "priceCurrency": "INR",
+                            "price": product.offer_price || product.price,
+                            "availability": product.available ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+                            "itemCondition": "https://schema.org/NewCondition"
+                          }
+                        })
+                      }} />
+
+                      <div
+                        className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm rounded-full p-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 z-50 cursor-pointer"
                         onClick={() => openZoom(image)}
                       >
                         <Maximize2 className="w-5 h-5 text-foreground" />
@@ -353,7 +378,7 @@ export default function ProductDetail() {
                   </div>
 
                   {/* Image Container */}
-                  <div 
+                  <div
                     className="flex-1 flex items-center justify-center overflow-hidden p-16"
                     onMouseDown={handleMouseDown}
                     onMouseMove={handleMouseMove}
@@ -454,7 +479,7 @@ export default function ProductDetail() {
               );
             })()}
 
-            <div 
+            <div
               className="prose prose-sm max-w-none text-foreground/80 [&>ul]:list-disc [&>ul]:pl-6 [&>ul]:space-y-2 [&>ol]:list-decimal [&>ol]:pl-6 [&>ol]:space-y-2 [&>p]:leading-relaxed [&_li>p]:inline [&_li>p]:m-0 [&_ul_ul]:list-[circle] [&_ul_ul_ul]:list-[square] [&_ul_ul]:mt-1 [&_ol_ol]:mt-1"
               dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.description || '') }}
             />
@@ -552,8 +577,9 @@ export default function ProductDetail() {
                   <div className="aspect-square overflow-hidden bg-gradient-to-br from-secondary/10 to-primary/10">
                     <img
                       src={item.images?.[0] || "/placeholder.svg"}
-                      alt={item.name}
+                      alt={`${item.name} - Handmade Paithani Saree`}
                       className="w-full h-full object-cover hover:scale-105 transition-transform"
+                      loading="lazy"
                     />
                   </div>
                   <div className="p-4">

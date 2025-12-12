@@ -39,6 +39,7 @@ import ActivityLog from "./pages/admin/ActivityLog";
 import RoleManagement from "./pages/admin/RoleManagement";
 import MarqueeBannerAdmin from "./pages/admin/MarqueeBanner";
 import AuthEvents from "./pages/admin/AuthEvents";
+import ConsentManager from './components/ConsentManager';
 
 const queryClient = new QueryClient();
 
@@ -108,13 +109,27 @@ const CustomerRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const App = () => (
+const App = () => {
+  // Ensure CSRF token cookie is present on initial load for double-submit protection
+  useEffect(() => {
+    const fetchCsrf = async () => {
+      try {
+        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/csrf-token`, { method: 'GET', credentials: 'include' });
+      } catch (e) {
+        console.warn('Unable to fetch CSRF token', e instanceof Error ? e.message : e);
+      }
+    };
+    fetchCsrf();
+  }, []);
+
+  return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <FloatingContactSupport />
       <BrowserRouter>
+        <ConsentManager />
         <Routes>
           <Route path="/" element={<CustomerRoute><Home /></CustomerRoute>} />
           <Route path="/auth" element={<Auth />} />
@@ -158,6 +173,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;

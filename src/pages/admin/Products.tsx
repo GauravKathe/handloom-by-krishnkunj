@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import type { Product } from "@/types";
+import { Category } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,15 +18,15 @@ import { stripHtml } from "@/lib/htmlUtils";
 import { sanitizeHtml } from "@/lib/sanitize";
 
 export default function AdminProducts() {
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [productToDelete, setProductToDelete] = useState<any>(null);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [showDescriptionPreview, setShowDescriptionPreview] = useState(false);
@@ -76,7 +78,7 @@ export default function AdminProducts() {
       ]);
 
       setProducts(productsRes.data || []);
-      setCategories(categoriesRes.data || []);
+      setCategories(categoriesRes.data || [] as Category[]);
     } catch (error) {
       toast({ title: "Error loading products", variant: "destructive" });
     } finally {
@@ -96,10 +98,12 @@ export default function AdminProducts() {
       };
 
       if (editingProduct) {
-        await supabase.from("products").update(productData).eq("id", editingProduct.id);
+        const { error } = await supabase.functions.invoke('admin-manage-products', { body: { action: 'update', product: { ...productData, id: editingProduct.id } } });
+        if (error) throw error;
         toast({ title: "Product updated successfully" });
       } else {
-        await supabase.from("products").insert(productData);
+        const { error } = await supabase.functions.invoke('admin-manage-products', { body: { action: 'create', product: productData } });
+        if (error) throw error;
         toast({ title: "Product created successfully" });
       }
 
@@ -133,16 +137,6 @@ export default function AdminProducts() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // Validate number of images
-    if (formData.images.length + files.length > 4) {
-      toast({
-        title: "Too many images",
-        description: "Maximum 4 images allowed per product",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setUploadingImage(true);
 
     try {
@@ -152,52 +146,59 @@ export default function AdminProducts() {
         const file = files[i];
 
         // Validate file type
-        if (!["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type)) {
+        if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {
           toast({
-            title: "Invalid file type",
-            description: `File ${file.name} is not a valid image (JPG, JPEG, PNG, or WebP)`,
-            variant: "destructive",
+            title: 'Invalid file type',
+            description: `File ${file.name} is not a valid image`,
+            variant: 'destructive',
           });
           continue;
         }
 
-        // Validate file size (3MB)
-        if (file.size > 3145728) {
+        // Scan file for malware
+        const formData = new FormData();
+        formData.append('file', file);
+        const scanEndpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scan-upload`;
+        const getCookie = (name: string) => (
+          document.cookie.split('; ').find(row => row.startsWith(name + '='))?.split('=')[1] || ''
+        );
+        const scanResponse = await fetch(scanEndpoint, {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+          headers: {
+            'x-csrf-token': getCookie('XSRF-TOKEN') || ''
+          }
+        });
+
+        const scanResult = await scanResponse.json();
+        if (!scanResult.safe) {
           toast({
-            title: "File too large",
-            description: `File ${file.name} must be less than 3MB`,
-            variant: "destructive",
+            title: 'Malware detected',
+            description: `File ${file.name} contains malware and was rejected`,
+            variant: 'destructive',
           });
           continue;
         }
 
-        const fileExt = file.name.split(".").pop();
+        // Upload file to Supabase storage
+        const fileExt = file.name.split('.').pop();
         const fileName = `product-${Date.now()}-${i}.${fileExt}`;
-
-        const { data, error } = await supabase.storage
-          .from("product-images")
-          .upload(fileName, file);
+        const { data, error } = await supabase.storage.from('product-images').upload(fileName, file);
 
         if (error) throw error;
 
-        const { data: urlData } = supabase.storage
-          .from("product-images")
-          .getPublicUrl(data.path);
-
+        const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(data.path);
         uploadedUrls.push(urlData.publicUrl);
       }
 
-      setFormData({
-        ...formData,
-        images: [...formData.images, ...uploadedUrls],
-      });
-
-      toast({ title: "Images uploaded successfully" });
-    } catch (error: any) {
+      setFormData({ ...formData, images: [...formData.images, ...uploadedUrls] });
+    } catch (error) {
+      console.error('Error uploading images:', error);
       toast({
-        title: "Error uploading images",
-        description: error.message,
-        variant: "destructive",
+        title: 'Upload failed',
+        description: 'An error occurred while uploading images',
+        variant: 'destructive',
       });
     } finally {
       setUploadingImage(false);
@@ -239,7 +240,7 @@ export default function AdminProducts() {
         return;
       }
 
-      const { error } = await supabase.from("products").delete().eq("id", id);
+      const { error } = await supabase.functions.invoke('admin-manage-products', { body: { action: 'delete', product: { id } } });
       
       if (error) {
         console.error("Delete error:", error);
@@ -314,10 +315,7 @@ export default function AdminProducts() {
       }
 
       if (productsToDelete.length > 0) {
-        const { error } = await supabase
-          .from("products")
-          .delete()
-          .in("id", productsToDelete);
+        const { data, error } = await supabase.functions.invoke('admin-manage-products', { body: { action: 'bulk-delete', product: { ids: productsToDelete } } });
         
         if (error) {
           console.error("Bulk delete error:", error);
@@ -330,6 +328,7 @@ export default function AdminProducts() {
         }
 
         // Immediately update local state
+        // server returns deleted list in data.deleted if applicable
         setProducts(products.filter(p => !productsToDelete.includes(p.id)));
         setSelectedProducts([]);
         toast({ 

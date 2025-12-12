@@ -62,13 +62,13 @@ export default function Checkout() {
   useEffect(() => {
     checkUser();
     loadDeliveryCharge();
-    
+
     // Load Razorpay script
     const script = document.createElement("script");
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
     script.async = true;
     document.body.appendChild(script);
-    
+
     return () => {
       document.body.removeChild(script);
     };
@@ -120,7 +120,7 @@ export default function Checkout() {
 
   const loadCart = async (userId: string) => {
     setLoading(true);
-    
+
     try {
       const { data: cartData, error: cartError } = await supabase
         .from("cart_items")
@@ -409,7 +409,7 @@ export default function Checkout() {
 
         window.dispatchEvent(new Event('cartUpdated'));
         setOrderConfirmation(finalOrder);
-        
+
         toast({
           title: "Order placed successfully! 🎉",
           description: `Order ID: ${finalOrder.id.slice(0, 8)}`,
@@ -439,9 +439,9 @@ export default function Checkout() {
         'razorpay-create-order',
         {
           body: {
-            amount: Math.round(order.total_amount * 100), // Convert to paise
+            // Secure: Send orderId instead of amount. Backend calculates amount.
+            orderId: order.id,
             currency: 'INR',
-            receipt: order.id,
             notes: {
               order_id: order.id,
               user_id: user.id
@@ -672,11 +672,10 @@ export default function Checkout() {
               <div key={step.number} className="flex items-center flex-1">
                 <div className="flex flex-col items-center flex-1">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${
-                      currentStep >= step.number
+                    className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${currentStep >= step.number
                         ? "bg-primary border-primary text-primary-foreground"
                         : "border-border text-muted-foreground"
-                    }`}
+                      }`}
                   >
                     <step.icon className="w-5 h-5" />
                   </div>
@@ -919,11 +918,10 @@ export default function Checkout() {
                     <div
                       key={method.id}
                       onClick={() => setPaymentMethod(method.id as any)}
-                      className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                        paymentMethod === method.id
+                      className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${paymentMethod === method.id
                           ? "border-primary bg-primary/5"
                           : "border-border hover:border-primary/50"
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-3">
                         <span className="text-2xl">{method.icon}</span>
@@ -932,11 +930,10 @@ export default function Checkout() {
                           <p className="text-xs text-muted-foreground">{method.description}</p>
                         </div>
                         <div
-                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                            paymentMethod === method.id
+                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === method.id
                               ? "border-primary"
                               : "border-border"
-                          }`}
+                            }`}
                         >
                           {paymentMethod === method.id && (
                             <div className="w-3 h-3 rounded-full bg-primary" />

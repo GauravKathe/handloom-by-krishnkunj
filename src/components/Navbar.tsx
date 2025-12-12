@@ -87,6 +87,12 @@ export const Navbar = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    // Clear server cookie as well
+    try {
+      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auth-clear-cookie`, { method: 'POST', credentials: 'include' });
+    } catch (e) {
+      console.warn('Failed to clear server cookie', e instanceof Error ? e.message : e);
+    }
     toast({
       title: "Logged out successfully",
     });

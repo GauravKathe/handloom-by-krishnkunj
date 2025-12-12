@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { Order } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,10 +11,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { exportToCsvFile } from '@/utils/exportCsv';
 
 export default function AdminOrders() {
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [fromDate, setFromDate] = useState("");
@@ -57,11 +58,20 @@ export default function AdminOrders() {
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
-      await supabase.from("orders").update({ status: newStatus }).eq("id", orderId);
+      // Call server-side admin function that validates admin role and updates the order.
+      const { data, error } = await supabase.functions.invoke('admin-update-order-status', {
+        body: { orderId, status: newStatus }
+      });
+
+      if (error) {
+        throw error;
+      }
+
       toast({ title: "Order status updated" });
       loadOrders();
-    } catch (error) {
-      toast({ title: "Error updating order", variant: "destructive" });
+    } catch (error: any) {
+      console.error('Error updating order via admin function:', error);
+      toast({ title: "Error updating order", description: error?.message || 'Admin authorization required', variant: "destructive" });
     }
   };
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { Order } from '@/types';
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,7 +14,7 @@ export default function PaymentAnalytics() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<Order[]>([]);
   const [stats, setStats] = useState({
     totalRevenue: 0,
     paidOrders: 0,

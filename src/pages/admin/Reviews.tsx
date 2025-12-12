@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { Review, Product as ProductType } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -11,11 +12,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function AdminReviews() {
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [products, setProducts] = useState<ProductType[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingReview, setEditingReview] = useState<any>(null);
+  const [editingReview, setEditingReview] = useState<Review | null>(null);
   const [formData, setFormData] = useState({
     product_id: "",
     rating: 5,
@@ -82,18 +83,11 @@ export default function AdminReviews() {
       };
 
       if (editingReview) {
-        const { error } = await supabase
-          .from("reviews")
-          .update(reviewData)
-          .eq("id", editingReview.id);
-
+        const { error } = await supabase.functions.invoke('admin-manage-reviews', { body: { action: 'update', review: { ...reviewData, id: editingReview.id } } });
         if (error) throw error;
         toast({ title: "Review updated successfully" });
       } else {
-        const { error } = await supabase
-          .from("reviews")
-          .insert(reviewData);
-
+        const { error } = await supabase.functions.invoke('admin-manage-reviews', { body: { action: 'create', review: reviewData } });
         if (error) throw error;
         toast({ title: "Review added successfully" });
       }
@@ -125,7 +119,8 @@ export default function AdminReviews() {
     if (!confirm("Are you sure you want to delete this review?")) return;
 
     try {
-      await supabase.from("reviews").delete().eq("id", id);
+      const { error } = await supabase.functions.invoke('admin-manage-reviews', { body: { action: 'delete', review: { id } } });
+      if (error) throw error;
       toast({ title: "Review deleted successfully" });
       loadReviews();
     } catch (error) {

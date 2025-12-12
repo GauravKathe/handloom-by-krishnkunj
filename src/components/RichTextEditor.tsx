@@ -199,6 +199,30 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
     setUploading(true);
 
     try {
+      // Scan file for malware before upload
+      const formData = new FormData();
+      formData.append('file', file);
+      const scanEndpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scan-upload`;
+      const getCookie = (name: string) => (document.cookie.split('; ').find(row => row.startsWith(name + '='))?.split('=')[1] || '');
+      const scanResponse = await fetch(scanEndpoint, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+        headers: {
+          'x-csrf-token': getCookie('XSRF-TOKEN') || ''
+        }
+      });
+
+      const scanResult = await scanResponse.json();
+      if (!scanResult.safe) {
+        toast({
+          title: 'Malware detected',
+          description: `File ${file.name} contains malware and was rejected`,
+          variant: 'destructive',
+        });
+        return;
+      }
+
       const fileExt = file.name.split('.').pop();
       const fileName = `editor-${Date.now()}.${fileExt}`;
 

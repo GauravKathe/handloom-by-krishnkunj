@@ -1,0 +1,29 @@
+name: Admin Functions Integration Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      TEST_ADMIN_JWT: ${{ secrets.TEST_ADMIN_JWT }}
+      TEST_USER_JWT: ${{ secrets.TEST_USER_JWT }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Install dependencies
+        run: npm ci
+      - name: Run admin function integration tests
+        run: node scripts/test-admin-functions.js
+      - name: Run RLS checks
+        run: node scripts/test-rls.js

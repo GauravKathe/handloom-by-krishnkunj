@@ -34,12 +34,7 @@ export default function AdminSettings() {
   const handleSaveDelivery = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from("site_content")
-        .update({
-          content: { delivery_charge: deliveryCharge }
-        })
-        .eq("section", "settings");
+      const { error } = await supabase.functions.invoke('admin-manage-content', { body: { action: 'update-settings', payload: { settings: { delivery_charge: deliveryCharge } } } });
 
       if (error) throw error;
 

@@ -1,20 +1,34 @@
+// @ts-ignore
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// @ts-ignore
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+
+declare const Deno: any;
 
 // Security: Restrict CORS to specific origins
 const getAllowedOrigin = (origin: string | null): string => {
   const allowedOrigins = [
     Deno.env.get('SITE_URL') || '',
+    // ... (rest of getAllowedOrigin stays same, but I can't put `...` in replace_file_content for multiple line replacement so I will use a StartLine/EndLine strategy that covers file header and start of next function)
+
+    // Actually I will do it in chunks to avoid large replacements.
+
+    // Chunk 1: Header + Deno declaration
+    // Chunk 2: serve(req: Request)
+    // Chunk 3: cookie types
+    'http://localhost:3000',
+    'http://localhost:5173',
     'https://lovable.dev',
     'https://lqhvsafeatkgaxxvyeje.supabase.co'
   ].filter(Boolean);
-  
-  // In production, validate against allowed origins
+
   if (origin && allowedOrigins.some(allowed => origin.startsWith(allowed))) {
     return origin;
   }
-  // Default to site URL or first allowed origin
-  return allowedOrigins[0] || '*';
+
+  // Strict Secure Default: Do not allow random origins.
+  // We return the primary site URL if origin matches nothing, or null string which is invalid for browsers but safer than *
+  return allowedOrigins[0] || '';
 };
 
 const getCorsHeaders = (origin: string | null) => ({
@@ -27,7 +41,14 @@ const getCorsHeaders = (origin: string | null) => ({
 const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
 const MAX_REQUESTS_PER_WINDOW = 5;
 
-serve(async (req) => {
+const securityHeaders = {
+  'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin'
+};
+
+serve(async (req: Request) => {
   const origin = req.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
 
@@ -40,18 +61,24 @@ serve(async (req) => {
   if (req.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: "Method not allowed" }),
-      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 405, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
   try {
     // Verify user authentication
-    const authHeader = req.headers.get('authorization');
+    let authHeader = req.headers.get('authorization') || '';
+    if (!authHeader) {
+      const cookies = req.headers.get('cookie') || '';
+      const match = cookies.split(';').map((s: string) => s.trim()).find((c: string) => c.startsWith('sb_jwt='));
+      const token = match ? match.split('=')[1] : null;
+      if (token) authHeader = `Bearer ${token}`;
+    }
     if (!authHeader) {
       console.error('No authorization header provided');
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 401, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -67,7 +94,7 @@ serve(async (req) => {
       console.error('User authentication failed');
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 401, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -84,7 +111,7 @@ serve(async (req) => {
       console.log(`Rate limit exceeded for user ${user.id}`);
       return new Response(
         JSON.stringify({ error: "Too many requests. Please try again later." }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 429, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -93,21 +120,38 @@ serve(async (req) => {
       .from('rate_limits')
       .insert({ user_id: user.id, endpoint: 'razorpay-create-order' });
 
-    const { amount, currency = "INR", receipt, notes } = await req.json();
+    const { orderId, currency = "INR", notes } = await req.json();
 
-    // Validate amount - must be positive integer (paise)
-    if (!amount || typeof amount !== 'number' || amount <= 0 || !Number.isInteger(amount)) {
+    if (!orderId) {
       return new Response(
-        JSON.stringify({ error: "Invalid amount - must be a positive integer in paise" }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "Missing order ID" }),
+        { status: 400, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Validate amount range (min 100 paise = ₹1, max reasonable limit)
-    if (amount < 100 || amount > 1000000000) {
+    // Fetch order from database to get the trusted amount
+    const { data: orderData, error: orderError } = await supabaseClient
+      .from('orders')
+      .select('id, total_amount, status')
+      .eq('id', orderId)
+      .eq('user_id', user.id) // Ensure order belongs to user
+      .single();
+
+    if (orderError || !orderData) {
+      console.error('Order fetching error:', orderError);
       return new Response(
-        JSON.stringify({ error: "Amount out of valid range" }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "Order not found or access denied" }),
+        { status: 404, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate amount (total_amount is typically in Rupees, Razorpay expects paise)
+    const amount = Math.round(Number(orderData.total_amount) * 100);
+
+    if (isNaN(amount) || amount <= 0) {
+      return new Response(
+        JSON.stringify({ error: "Invalid order amount" }),
+        { status: 400, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -118,12 +162,12 @@ serve(async (req) => {
       console.error('Razorpay credentials not configured');
       return new Response(
         JSON.stringify({ error: "Payment gateway not configured" }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Create idempotency key to prevent duplicate orders
-    const idempotencyKey = `order_${user.id}_${receipt || Date.now()}`;
+    const idempotencyKey = `order_${user.id}_${orderId}`;
 
     // Create Razorpay order
     const razorpayResponse = await fetch('https://api.razorpay.com/v1/orders', {
@@ -134,12 +178,13 @@ serve(async (req) => {
         'X-Razorpay-Idempotency-Key': idempotencyKey
       },
       body: JSON.stringify({
-        amount: Math.round(amount),
+        amount: amount,
         currency,
-        receipt: receipt || `receipt_${Date.now()}`,
+        receipt: orderId, // Use database Order ID as receipt
         notes: {
           ...notes,
-          user_id: user.id // Always include user_id for audit
+          order_id: orderId, // Critical: Link Razorpay Order to DB Order ID for verification
+          user_id: user.id
         }
       })
     });
@@ -149,28 +194,30 @@ serve(async (req) => {
       console.error('Razorpay API error:', JSON.stringify(errorData));
       return new Response(
         JSON.stringify({ error: "Failed to create order" }),
-        { status: razorpayResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: razorpayResponse.status, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const orderData = await razorpayResponse.json();
-    console.log('Razorpay order created:', orderData.id, 'for user:', user.id);
+    const razorpayOrderData = await razorpayResponse.json();
+    console.log('Razorpay order created:', razorpayOrderData.id, 'for user:', user.id);
 
     return new Response(
       JSON.stringify({
-        orderId: orderData.id,
-        amount: orderData.amount,
-        currency: orderData.currency,
-        receipt: orderData.receipt
+        orderId: razorpayOrderData.id,
+        amount: razorpayOrderData.amount,
+        currency: razorpayOrderData.currency,
+        receipt: razorpayOrderData.receipt,
+        // Return dbOrderId so client knows usage (redundant but helpful)
+        dbOrderId: orderData.id
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     console.error('Error in razorpay-create-order:', error instanceof Error ? error.message : 'Unknown error');
     return new Response(
       JSON.stringify({ error: "An error occurred processing your request" }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

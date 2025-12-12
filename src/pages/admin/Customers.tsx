@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { Profile } from '@/types';
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { exportToCsvFile } from '@/utils/exportCsv';
 
 export default function AdminCustomers() {
-  const [customers, setCustomers] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<Profile[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [fromDate, setFromDate] = useState("");

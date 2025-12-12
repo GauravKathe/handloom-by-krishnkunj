@@ -7,17 +7,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'x-razorpay-signature, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+// Add secure headers to all responses
+const securityHeaders = {
+  'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin'
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: { ...corsHeaders, ...securityHeaders } });
   }
 
   // Only allow POST method for webhooks
   if (req.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: 'Method not allowed' }),
-      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 405, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
@@ -31,7 +38,7 @@ serve(async (req) => {
       console.error('No signature provided');
       return new Response(
         JSON.stringify({ error: 'No signature provided' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -41,8 +48,21 @@ serve(async (req) => {
       console.error('Webhook secret not configured');
       return new Response(
         JSON.stringify({ error: 'Webhook secret not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Rate-limit webhook calls by IP to slow brute force / replay:
+    try {
+      const { globalRateLimiter } = await import('../utils/rate-limit.ts');
+      const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || req.headers.get('remote_addr') || 'unknown';
+      const check = globalRateLimiter.check(ip);
+      if (!check.ok) {
+        console.warn('Webhook rate limit exceeded for IP:', ip);
+        return new Response(JSON.stringify({ error: 'Rate limited' }), { status: 429, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } });
+      }
+    } catch (e) {
+      console.warn('Rate limiter unavailable', e instanceof Error ? e.message : e);
     }
 
     // Verify webhook signature
@@ -59,9 +79,7 @@ serve(async (req) => {
     );
     
     const signatureBuffer = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
-    const generatedSignature = Array.from(new Uint8Array(signatureBuffer))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+    const generatedSignature = btoa(String.fromCharCode(...new Uint8Array(signatureBuffer)));
 
     // Constant-time comparison to prevent timing attacks
     const isValid = generatedSignature.length === signature.length &&
@@ -71,7 +89,7 @@ serve(async (req) => {
       console.error('Invalid webhook signature');
       return new Response(
         JSON.stringify({ error: 'Invalid signature' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 401, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -107,14 +125,14 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ received: true }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     console.error('Error processing webhook:', error instanceof Error ? error.message : 'Unknown error');
     return new Response(
       JSON.stringify({ error: 'Internal error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

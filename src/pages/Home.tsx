@@ -105,8 +105,8 @@ export default function Home() {
       .single();
 
     if (data?.content && typeof data.content === 'object') {
-      setHeroContent(data.content as { 
-        bannerImages?: string[]; 
+      setHeroContent(data.content as {
+        bannerImages?: string[];
         bannerSlides?: { image: string; title: string; subtitle: string }[];
         showTextOverlay?: boolean;
         bannerBgColor?: string;
@@ -123,19 +123,19 @@ export default function Home() {
   // Get slides from new format or convert from legacy format
   const getHeroSlides = () => {
     if (!heroContent) return defaultHeroSlides;
-    
-    const content = heroContent as { 
-      bannerImages?: string[]; 
+
+    const content = heroContent as {
+      bannerImages?: string[];
       bannerSlides?: { image: string; title: string; subtitle: string }[];
       showTextOverlay?: boolean;
       bannerBgColor?: string;
     };
-    
+
     // New format with full slide objects
     if (content.bannerSlides && content.bannerSlides.length > 0) {
       return content.bannerSlides;
     }
-    
+
     // Legacy format with just image URLs
     if (content.bannerImages && content.bannerImages.length > 0) {
       return content.bannerImages.map((img, idx) => ({
@@ -144,7 +144,7 @@ export default function Home() {
         subtitle: defaultHeroSlides[idx % defaultHeroSlides.length]?.subtitle || "Handcrafted with love and tradition",
       }));
     }
-    
+
     return defaultHeroSlides;
   };
 
@@ -207,7 +207,7 @@ export default function Home() {
         {/* Hero Carousel */}
         <section className="relative w-full">
           <Carousel
-            opts={{ 
+            opts={{
               loop: true,
               align: "start"
             }}
@@ -224,10 +224,11 @@ export default function Home() {
               {heroSlides.map((slide, index) => (
                 <CarouselItem key={index}>
                   <div className="w-full h-auto bg-[#f7f3ec] flex justify-center items-center">
-                    <img 
-                      src={slide.image} 
-                      alt={slide.title}
+                    <img
+                      src={slide.image}
+                      alt={`Paithani Saree Banner - ${slide.title}`}
                       className="w-full h-auto object-contain"
+                      loading="lazy"
                     />
                   </div>
                 </CarouselItem>
@@ -274,7 +275,7 @@ export default function Home() {
               </>
             )}
 
-            <div 
+            <div
               ref={categoryScrollRef}
               onScroll={handleScroll}
               className="flex gap-6 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory scrollbar-hide"
@@ -289,8 +290,9 @@ export default function Home() {
                     <div className="aspect-square w-full rounded-full overflow-hidden bg-gradient-to-br from-secondary/20 to-primary/20 hover:shadow-lg transition-all duration-300 hover:scale-105">
                       <img
                         src={categoryImages[category.name] || category.image_url || "/placeholder.svg"}
-                        alt={category.name}
+                        alt={`${category.name} - Handmade Paithani & Handloom Collection`}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        loading="lazy"
                       />
                     </div>
                     <div className="mt-3 text-center">
@@ -310,11 +312,10 @@ export default function Home() {
                   <button
                     key={index}
                     onClick={() => scrollToPage(index)}
-                    className={`h-3 rounded-full transition-all duration-300 ${
-                      currentPage === index 
-                        ? 'w-10 bg-primary shadow-md' 
-                        : 'w-3 bg-muted-foreground/40 hover:bg-muted-foreground/70'
-                    }`}
+                    className={`h-3 rounded-full transition-all duration-300 ${currentPage === index
+                      ? 'w-10 bg-primary shadow-md'
+                      : 'w-3 bg-muted-foreground/40 hover:bg-muted-foreground/70'
+                      }`}
                     aria-label={`Go to page ${index + 1}`}
                   />
                 ))}
@@ -367,7 +368,7 @@ export default function Home() {
                     ))}
                   </div>
                   <p className="text-muted-foreground mb-4 italic">
-                    "The saree quality is exceptional and the craftsmanship is visible in every detail. 
+                    "The saree quality is exceptional and the craftsmanship is visible in every detail.
                     Truly a piece of art!"
                   </p>
                   <p className="font-semibold">- Happy Customer</p>

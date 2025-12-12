@@ -46,24 +46,9 @@ export default function MarqueeBannerAdmin() {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const { data: existing } = await supabase
-        .from("site_content")
-        .select("id")
-        .eq("section", "marquee_banner")
-        .single();
-
       const contentData = { text: content, enabled: isEnabled };
-
-      if (existing) {
-        await supabase
-          .from("site_content")
-          .update({ content: contentData, updated_at: new Date().toISOString() })
-          .eq("section", "marquee_banner");
-      } else {
-        await supabase
-          .from("site_content")
-          .insert({ section: "marquee_banner", content: contentData });
-      }
+      const { error } = await supabase.functions.invoke('admin-manage-content', { body: { action: 'save-section', payload: { section: 'marquee_banner', content: contentData } } });
+      if (error) throw error;
 
       toast.success("Marquee banner updated successfully!");
     } catch (error) {

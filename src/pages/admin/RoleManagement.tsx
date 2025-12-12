@@ -33,42 +33,24 @@ export default function RoleManagement() {
   }, []);
 
   const loadUserRoles = async () => {
-    const { data: rolesData, error } = await supabase
-      .from("user_roles")
-      .select("*")
-      .order("created_at", { ascending: false });
+    try {
+      const { data, error }: any = await supabase.functions.invoke('admin-get-user-roles');
 
-    if (error) {
-      console.error("Error loading user roles:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load user roles",
-        variant: "destructive",
-      });
+      if (error) {
+        console.error('Error loading user roles via admin function:', error);
+        toast({ title: 'Error', description: 'Failed to load user roles', variant: 'destructive' });
+        setLoading(false);
+        return;
+      }
+
+      const rolesData = data?.userRoles || data;
+      setUserRoles(rolesData || []);
+    } catch (e) {
+      console.error('Unexpected error loading user roles:', e);
+      toast({ title: 'Error', description: 'Failed to load user roles', variant: 'destructive' });
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // Get unique user IDs
-    const userIds = [...new Set(rolesData?.map(role => role.user_id) || [])];
-    
-    // Fetch profile data for these users
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("id, full_name, email")
-      .in("id", userIds);
-
-    // Create a map of user_id to profile
-    const profileMap = new Map(profileData?.map(p => [p.id, p]) || []);
-
-    // Combine the data
-    const rolesWithProfiles = rolesData?.map(role => ({
-      ...role,
-      profile: profileMap.get(role.user_id)
-    })) || [];
-
-    setUserRoles(rolesWithProfiles);
-    setLoading(false);
   };
 
   const getRoleIcon = (role: string) => {

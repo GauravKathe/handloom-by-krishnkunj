@@ -26,7 +26,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
     <Link to={`/product/${product.id}`} className="group">
       <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 h-full">
         <CardContent className="p-0">
-          <div 
+          <div
             className="relative aspect-square overflow-hidden bg-gradient-to-br from-secondary/10 to-primary/10"
             onMouseEnter={() => {
               if (images.length > 1) {
@@ -39,11 +39,11 @@ export const ProductCard = ({ product }: ProductCardProps) => {
               <img
                 key={index}
                 src={image}
-                alt={`${product.name} - ${index + 1}`}
-                className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-500 ${
-                  currentImageIndex === index ? "opacity-100 group-hover:scale-105" : "opacity-0"
-                }`}
+                alt={`${product.name} - Handmade Paithani Saree - View ${index + 1}`}
+                className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-500 ${currentImageIndex === index ? "opacity-100 group-hover:scale-105" : "opacity-0"
+                  }`}
                 style={{ transitionProperty: 'opacity, transform' }}
+                loading="lazy"
               />
             ))}
             <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">

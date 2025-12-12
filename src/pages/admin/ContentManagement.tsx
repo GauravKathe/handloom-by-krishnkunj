@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { Json } from "@/integrations/supabase/types";
+import type { Category } from '@/types';
 
 interface BannerSlide {
   image: string;
@@ -38,14 +39,14 @@ export default function ContentManagement() {
   const [enableCropping, setEnableCropping] = useState(true);
   const [cropperOpen, setCropperOpen] = useState(false);
   const [pendingCropFile, setPendingCropFile] = useState<File | null>(null);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [newCategory, setNewCategory] = useState({
     name: "",
     description: "",
     image: null as File | null,
   });
-  const [categoryToDelete, setCategoryToDelete] = useState<any | null>(null);
-  const [categoryToEdit, setCategoryToEdit] = useState<any | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
   const [editingCategory, setEditingCategory] = useState({
     name: "",
     description: "",
@@ -156,6 +157,17 @@ export default function ContentManagement() {
     setUploadingImage(true);
 
     const fileName = `banner-${Date.now()}.jpg`;
+    const scanEndpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scan-upload`;
+    const formData = new FormData();
+    formData.append('file', new Blob([fileOrBlob]));
+    const getCookie = (name: string) => (document.cookie.split('; ').find(row => row.startsWith(name + '='))?.split('=')[1] || '');
+    const scanResponse = await fetch(scanEndpoint, { method: 'POST', body: formData, credentials: 'include', headers: { 'x-csrf-token': getCookie('XSRF-TOKEN') || '' } });
+    const scanResult = await scanResponse.json().catch(() => ({}));
+    if (!scanResponse.ok || !scanResult.safe) {
+      toast({ title: 'Malware detected', description: 'Uploaded image failed malware scan', variant: 'destructive' });
+      setUploadingImage(false);
+      return;
+    }
 
     const { data, error } = await supabase.storage
       .from("site-content")
@@ -210,25 +222,8 @@ export default function ContentManagement() {
       bannerSlides: slides.map(s => ({ image: s.image, title: s.title, subtitle: s.subtitle }))
     };
     
-    const { data: existing } = await supabase
-      .from("site_content")
-      .select("id")
-      .eq("section", "homepage_hero")
-      .single();
-
-    let error;
-    if (existing) {
-      const result = await supabase
-        .from("site_content")
-        .update({ content: contentData as Json })
-        .eq("section", "homepage_hero");
-      error = result.error;
-    } else {
-      const result = await supabase
-        .from("site_content")
-        .insert([{ section: "homepage_hero", content: contentData as Json }]);
-      error = result.error;
-    }
+    // Use server-side admin function to update site content to ensure only admins can change banners
+    const { error } = await supabase.functions.invoke('admin-manage-content', { body: { action: 'save-banners', payload: { slides } } });
 
     if (error) {
       toast({
@@ -263,6 +258,18 @@ export default function ContentManagement() {
     const fileExt = newCategory.image.name.split(".").pop();
     const fileName = `category-${Date.now()}.${fileExt}`;
 
+    const scanEndpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scan-upload`;
+    const formData = new FormData();
+    formData.append('file', newCategory.image as Blob);
+    const getCookie = (name: string) => (document.cookie.split('; ').find(row => row.startsWith(name + '='))?.split('=')[1] || '');
+    const scanResponse = await fetch(scanEndpoint, { method: 'POST', body: formData, credentials: 'include', headers: { 'x-csrf-token': getCookie('XSRF-TOKEN') || '' } });
+    const scanResult = await scanResponse.json().catch(() => ({}));
+    if (!scanResponse.ok || !scanResult.safe) {
+      toast({ title: "Malware detected", description: 'Uploaded image failed malware scan', variant: 'destructive' });
+      setUploadingCategory(false);
+      return;
+    }
+
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("site-content")
       .upload(fileName, newCategory.image);
@@ -281,13 +288,7 @@ export default function ContentManagement() {
       .from("site-content")
       .getPublicUrl(uploadData.path);
 
-    const { error: insertError } = await supabase
-      .from("categories")
-      .insert({
-        name: newCategory.name,
-        description: newCategory.description,
-        image_url: urlData.publicUrl,
-      });
+    const { error: insertError } = await supabase.functions.invoke('admin-manage-content', { body: { action: 'create-category', payload: { name: newCategory.name, description: newCategory.description, image_url: urlData.publicUrl } } });
 
     if (insertError) {
       toast({
@@ -305,10 +306,7 @@ export default function ContentManagement() {
   };
 
   const deleteCategory = async (id: string) => {
-    const { error } = await supabase
-      .from("categories")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.functions.invoke('admin-manage-content', { body: { action: 'delete-category', payload: { id } } });
 
     if (error) {
       toast({
@@ -350,6 +348,18 @@ export default function ContentManagement() {
       const fileExt = editingCategory.image.name.split(".").pop();
       const fileName = `category-${Date.now()}.${fileExt}`;
 
+      const scanEndpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scan-upload`;
+      const formData = new FormData();
+      formData.append('file', editingCategory.image as Blob);
+      const getCookie = (name: string) => (document.cookie.split('; ').find(row => row.startsWith(name + '='))?.split('=')[1] || '');
+      const scanResponse = await fetch(scanEndpoint, { method: 'POST', body: formData, credentials: 'include', headers: { 'x-csrf-token': getCookie('XSRF-TOKEN') || '' } });
+      const scanResult = await scanResponse.json().catch(() => ({}));
+      if (!scanResponse.ok || !scanResult.safe) {
+        toast({ title: "Malware detected", description: 'Uploaded image failed malware scan', variant: 'destructive' });
+        setUploadingCategory(false);
+        return;
+      }
+
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("site-content")
         .upload(fileName, editingCategory.image);
@@ -371,14 +381,7 @@ export default function ContentManagement() {
       imageUrl = urlData.publicUrl;
     }
 
-    const { error: updateError } = await supabase
-      .from("categories")
-      .update({
-        name: editingCategory.name,
-        description: editingCategory.description,
-        image_url: imageUrl,
-      })
-      .eq("id", categoryToEdit.id);
+    const { error: updateError } = await supabase.functions.invoke('admin-manage-content', { body: { action: 'update-category', payload: { id: categoryToEdit.id, name: editingCategory.name, description: editingCategory.description, image_url: imageUrl } } });
 
     if (updateError) {
       toast({
