@@ -1,14 +1,17 @@
 -- Create Storage Buckets and Policies for Admin Uploads
+-- Updated to handle existing policies gracefully by dropping them first.
 
 -- 1. Create 'product-images' bucket
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('product-images', 'product-images', true)
 ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS "Public Products Access" ON storage.objects;
 CREATE POLICY "Public Products Access"
 ON storage.objects FOR SELECT
 USING ( bucket_id = 'product-images' );
 
+DROP POLICY IF EXISTS "Admin Products Access" ON storage.objects;
 CREATE POLICY "Admin Products Access"
 ON storage.objects FOR ALL
 USING (
@@ -20,15 +23,17 @@ WITH CHECK (
   AND EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin')
 );
 
--- 2. Create 'site-content' bucket (used by ContentManagement for banners and categories)
+-- 2. Create 'site-content' bucket (CRITICAL for banners)
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('site-content', 'site-content', true)
 ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS "Public Site Content Access" ON storage.objects;
 CREATE POLICY "Public Site Content Access"
 ON storage.objects FOR SELECT
 USING ( bucket_id = 'site-content' );
 
+DROP POLICY IF EXISTS "Admin Site Content Access" ON storage.objects;
 CREATE POLICY "Admin Site Content Access"
 ON storage.objects FOR ALL
 USING (
@@ -40,57 +45,19 @@ WITH CHECK (
   AND EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin')
 );
 
--- 3. Create 'banners' bucket (keep as backup or if used elsewhere)
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('banners', 'banners', true)
-ON CONFLICT (id) DO NOTHING;
-
-CREATE POLICY "Public Banner Access"
-ON storage.objects FOR SELECT
-USING ( bucket_id = 'banners' );
-
-CREATE POLICY "Admin Banner Access"
-ON storage.objects FOR ALL
-USING (
-  bucket_id = 'banners' 
-  AND EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin')
-)
-WITH CHECK (
-  bucket_id = 'banners'
-  AND EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin')
-);
-
--- 4. Create 'categories' bucket (keep as backup)
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('categories', 'categories', true)
-ON CONFLICT (id) DO NOTHING;
-
-CREATE POLICY "Public Category Access"
-ON storage.objects FOR SELECT
-USING ( bucket_id = 'categories' );
-
-CREATE POLICY "Admin Category Access"
-ON storage.objects FOR ALL
-USING (
-  bucket_id = 'categories' 
-  AND EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin')
-)
-WITH CHECK (
-  bucket_id = 'categories'
-  AND EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin')
-);
-
--- 5. Create 'uploads' bucket (used by scan-upload function)
+-- 3. Create 'uploads' bucket (used by scan-upload function)
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('uploads', 'uploads', true)
 ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS "Public Uploads Access" ON storage.objects;
 CREATE POLICY "Public Uploads Access"
 ON storage.objects FOR SELECT
 USING ( bucket_id = 'uploads' );
 
 -- Note: scan-upload uses service_role key, so it bypasses RLS for uploads.
 -- Added admin policy just in case direct access is attempted.
+DROP POLICY IF EXISTS "Admin Uploads Access" ON storage.objects;
 CREATE POLICY "Admin Uploads Access"
 ON storage.objects FOR ALL
 USING (
