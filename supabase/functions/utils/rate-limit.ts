@@ -1,4 +1,13 @@
+interface RateLimitEntry {
+  count: number;
+  first: number;
+}
+
 export class RateLimiter {
+  private windowMs: number;
+  private maxRequests: number;
+  private map: Map<string, RateLimitEntry>;
+
   constructor(windowMs = 60000, maxRequests = 100) {
     this.windowMs = windowMs;
     this.maxRequests = maxRequests;
@@ -6,7 +15,7 @@ export class RateLimiter {
   }
 
   // key can be ip or user id
-  check(key) {
+  check(key: string): { ok: boolean; remaining: number } {
     const now = Date.now();
     const entry = this.map.get(key) || { count: 0, first: now };
     if (now - entry.first > this.windowMs) {

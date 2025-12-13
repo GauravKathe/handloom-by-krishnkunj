@@ -47,7 +47,7 @@ export default function AdminOrders() {
       }
 
       console.log("Loaded orders:", data);
-      setOrders(data || []);
+      setOrders((data as Order[]) || []);
     } catch (error) {
       console.error("Unexpected error:", error);
       toast({ title: "Error loading orders", variant: "destructive" });

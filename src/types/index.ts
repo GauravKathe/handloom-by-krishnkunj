@@ -5,6 +5,12 @@ export interface Profile {
   mobile_number?: string;
   city?: string;
   state?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CustomerProfile extends Profile {
+  orders?: { count: number }[];
 }
 
 export interface OrderItem {
@@ -20,6 +26,14 @@ export interface OrderItem {
   item_total?: number;
 }
 
+export interface OrderProfile {
+  full_name?: string;
+  email?: string;
+  mobile_number?: string;
+  city?: string;
+  state?: string;
+}
+
 export interface Order {
   id: string;
   user_id?: string;
@@ -27,7 +41,7 @@ export interface Order {
   discount_amount?: number;
   coupon_code?: string;
   shipping_address?: any;
-  profiles?: Profile;
+  profiles?: OrderProfile;
   order_items?: OrderItem[];
   status: string;
   created_at: string;
@@ -46,6 +60,7 @@ export interface Product {
   color?: string;
   available?: boolean;
   created_at?: string;
+  categories?: { name: string };
 }
 
 export interface Review {
@@ -54,10 +69,11 @@ export interface Review {
   user_id?: string;
   rating: number;
   comment?: string;
+  images?: string[];
   verified_purchase?: boolean;
   created_at?: string;
-  profiles?: Profile;
-  products?: { id: string; name: string };
+  profiles?: { full_name?: string };
+  products?: { id?: string; name: string };
 }
 
 export interface Category {

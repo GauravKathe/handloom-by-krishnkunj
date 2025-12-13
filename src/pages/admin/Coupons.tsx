@@ -148,7 +148,7 @@ export default function AdminCoupons() {
     }
   };
 
-  const handleEdit = (coupon: Coupon) => {
+  const handleEdit = (coupon: CouponType) => {
     setEditingCoupon(coupon);
     setFormData({
       code: coupon.code,
@@ -175,13 +175,13 @@ export default function AdminCoupons() {
     } catch (err: any) {
       toast({
         title: "Error deleting coupon",
-        description: error.message,
+        description: err?.message || 'Failed to delete coupon',
         variant: "destructive",
       });
     }
   };
 
-  const toggleStatus = async (coupon: Coupon) => {
+  const toggleStatus = async (coupon: CouponType) => {
     const newStatus = coupon.status === "active" ? "inactive" : "active";
     const oldData = { status: coupon.status };
 

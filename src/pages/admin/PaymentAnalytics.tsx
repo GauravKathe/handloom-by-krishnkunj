@@ -68,7 +68,7 @@ export default function PaymentAnalytics() {
 
       if (error) throw error;
 
-      setTransactions(orders || []);
+      setTransactions((orders as Order[]) || []);
 
       // Calculate stats
       const paidOrders = orders?.filter(o => o.status === 'paid') || [];

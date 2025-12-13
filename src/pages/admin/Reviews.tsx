@@ -45,7 +45,7 @@ export default function AdminReviews() {
         `)
         .order("created_at", { ascending: false });
 
-      setReviews(data || []);
+      setReviews((data as Review[]) || []);
     } catch (error) {
       toast({ title: "Error loading reviews", variant: "destructive" });
     }

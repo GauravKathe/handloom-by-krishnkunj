@@ -79,8 +79,10 @@ serve(async (req) => {
 
     // Server-side sanitization of product payload
     const { default: sanitizeHtml } = await import('https://esm.sh/sanitize-html@2.10.0');
-    const sanitizeRecursively = (obj) => {
+    // deno-lint-ignore no-explicit-any
+    const sanitizeRecursively = (obj: any): any => {
       if (!obj || typeof obj !== 'object') return obj;
+      // deno-lint-ignore no-explicit-any
       const out: any = Array.isArray(obj) ? [] : {};
       for (const k in obj) {
         const v = obj[k];

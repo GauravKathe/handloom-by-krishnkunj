@@ -115,7 +115,7 @@ export default function AdminDashboard() {
         totalCustomers: customersCount || 0,
         inventoryCount: productsCount || 0,
       });
-      setRecentOrders(recentOrdersData || []);
+      setRecentOrders((recentOrdersData as Order[]) || []);
     } catch (error) {
       console.error("Error loading dashboard data:", error);
       toast({
