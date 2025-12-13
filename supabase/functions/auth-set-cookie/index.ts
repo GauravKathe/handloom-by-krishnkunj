@@ -1,3 +1,4 @@
+// @ts-ignore
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
 declare const Deno: any;
@@ -20,7 +21,7 @@ const getAllowedOrigin = (origin: string | null): string => {
   return allowedOrigins[0] || '*';
 };
 
-serve(async (req) => {
+serve(async (req: any) => {
   const origin = req.headers.get('origin');
 
   const corsHeaders = {

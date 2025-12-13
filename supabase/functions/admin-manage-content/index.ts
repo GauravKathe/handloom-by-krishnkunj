@@ -1,4 +1,6 @@
+// @ts-ignore
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// @ts-ignore
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 declare const Deno: any;
@@ -21,7 +23,7 @@ const getAllowedOrigin = (origin: string | null): string => {
   return allowedOrigins[0] || '*';
 };
 
-serve(async (req) => {
+serve(async (req: any) => {
   const origin = req.headers.get('origin');
 
   const corsHeaders = {
@@ -45,7 +47,7 @@ serve(async (req) => {
     let authHeader = req.headers.get('authorization') || '';
     if (!authHeader) {
       const cookies = req.headers.get('cookie') || '';
-      const match = cookies.split(';').map(s => s.trim()).find(c => c.startsWith('sb_jwt='));
+      const match = cookies.split(';').map((s: string) => s.trim()).find((c: string) => c.startsWith('sb_jwt='));
       const token = match ? match.split('=')[1] : null;
       if (token) authHeader = `Bearer ${token}`;
     }
@@ -74,7 +76,7 @@ serve(async (req) => {
     const xsrfHeader = req.headers.get('x-csrf-token');
     const xsrfCookie = (() => {
       const cookies = req.headers.get('cookie') || '';
-      const match = cookies.split(';').map(s => s.trim()).find(c => c.startsWith('XSRF-TOKEN='));
+      const match = cookies.split(';').map((s: string) => s.trim()).find((c: string) => c.startsWith('XSRF-TOKEN='));
       return match ? match.split('=')[1] : null;
     })();
 
