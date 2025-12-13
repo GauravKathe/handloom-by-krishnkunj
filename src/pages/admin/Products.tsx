@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Product } from "@/types";
 import { Category } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeAdminFunction } from "@/lib/adminApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -98,11 +99,11 @@ export default function AdminProducts() {
       };
 
       if (editingProduct) {
-        const { error } = await supabase.functions.invoke('admin-manage-products', { body: { action: 'update', product: { ...productData, id: editingProduct.id } } });
+        const { error } = await invokeAdminFunction('admin-manage-products', { action: 'update', product: { ...productData, id: editingProduct.id } });
         if (error) throw error;
         toast({ title: "Product updated successfully" });
       } else {
-        const { error } = await supabase.functions.invoke('admin-manage-products', { body: { action: 'create', product: productData } });
+        const { error } = await invokeAdminFunction('admin-manage-products', { action: 'create', product: productData });
         if (error) throw error;
         toast({ title: "Product created successfully" });
       }
@@ -240,7 +241,7 @@ export default function AdminProducts() {
         return;
       }
 
-      const { error } = await supabase.functions.invoke('admin-manage-products', { body: { action: 'delete', product: { id } } });
+      const { error } = await invokeAdminFunction('admin-manage-products', { action: 'delete', product: { id } });
       
       if (error) {
         console.error("Delete error:", error);
@@ -315,7 +316,7 @@ export default function AdminProducts() {
       }
 
       if (productsToDelete.length > 0) {
-        const { data, error } = await supabase.functions.invoke('admin-manage-products', { body: { action: 'bulk-delete', product: { ids: productsToDelete } } });
+        const { data, error } = await invokeAdminFunction('admin-manage-products', { action: 'bulk-delete', product: { ids: productsToDelete } });
         
         if (error) {
           console.error("Bulk delete error:", error);

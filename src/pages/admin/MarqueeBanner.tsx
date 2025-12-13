@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeAdminFunction } from "@/lib/adminApi";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -47,7 +48,7 @@ export default function MarqueeBannerAdmin() {
     setLoading(true);
     try {
       const contentData = { text: content, enabled: isEnabled };
-      const { error } = await supabase.functions.invoke('admin-manage-content', { body: { action: 'save-section', payload: { section: 'marquee_banner', content: contentData } } });
+      const { error } = await invokeAdminFunction('admin-manage-content', { action: 'save-section', payload: { section: 'marquee_banner', content: contentData } });
       if (error) throw error;
 
       toast.success("Marquee banner updated successfully!");
