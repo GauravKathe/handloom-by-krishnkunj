@@ -99,6 +99,7 @@ serve(async (req: any) => {
     let payload = jsonData?.payload;
 
     // Sanitize content server-side
+    // @ts-ignore
     const { default: sanitizeHtml } = await import('https://esm.sh/sanitize-html@2.10.0');
 
     // deno-lint-ignore no-explicit-any
