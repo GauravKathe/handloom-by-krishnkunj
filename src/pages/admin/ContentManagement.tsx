@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeAdminFunction } from "@/lib/adminApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -218,12 +219,8 @@ export default function ContentManagement() {
   };
 
   const saveBanners = async (slides: BannerSlide[]) => {
-    const contentData = { 
-      bannerSlides: slides.map(s => ({ image: s.image, title: s.title, subtitle: s.subtitle }))
-    };
-    
-    // Use server-side admin function to update site content to ensure only admins can change banners
-    const { error } = await supabase.functions.invoke('admin-manage-content', { body: { action: 'save-banners', payload: { slides } } });
+    // Use server-side admin function with proper CSRF headers
+    const { error } = await invokeAdminFunction('admin-manage-content', { action: 'save-banners', payload: { slides } });
 
     if (error) {
       toast({
@@ -288,7 +285,7 @@ export default function ContentManagement() {
       .from("site-content")
       .getPublicUrl(uploadData.path);
 
-    const { error: insertError } = await supabase.functions.invoke('admin-manage-content', { body: { action: 'create-category', payload: { name: newCategory.name, description: newCategory.description, image_url: urlData.publicUrl } } });
+    const { error: insertError } = await invokeAdminFunction('admin-manage-content', { action: 'create-category', payload: { name: newCategory.name, description: newCategory.description, image_url: urlData.publicUrl } });
 
     if (insertError) {
       toast({
@@ -306,7 +303,7 @@ export default function ContentManagement() {
   };
 
   const deleteCategory = async (id: string) => {
-    const { error } = await supabase.functions.invoke('admin-manage-content', { body: { action: 'delete-category', payload: { id } } });
+    const { error } = await invokeAdminFunction('admin-manage-content', { action: 'delete-category', payload: { id } });
 
     if (error) {
       toast({
@@ -381,7 +378,7 @@ export default function ContentManagement() {
       imageUrl = urlData.publicUrl;
     }
 
-    const { error: updateError } = await supabase.functions.invoke('admin-manage-content', { body: { action: 'update-category', payload: { id: categoryToEdit.id, name: editingCategory.name, description: editingCategory.description, image_url: imageUrl } } });
+    const { error: updateError } = await invokeAdminFunction('admin-manage-content', { action: 'update-category', payload: { id: categoryToEdit.id, name: editingCategory.name, description: editingCategory.description, image_url: imageUrl } });
 
     if (updateError) {
       toast({
