@@ -1,24 +1,44 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
-const getCorsHeaders = (origin: string | null) => ({
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-});
+declare const Deno: any;
 
-const securityHeaders = {
-  'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
-  'X-Content-Type-Options': 'nosniff',
-  'X-Frame-Options': 'DENY',
-  'Referrer-Policy': 'strict-origin-when-cross-origin'
+const getAllowedOrigin = (origin: string | null): string => {
+  const allowedOrigins = [
+    Deno.env.get('SITE_URL') || '',
+    'http://localhost:8080',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://lovable.dev',
+    'https://gptengineer.app',
+    'https://handloombykrishnkunj.com',
+    'https://www.handloombykrishnkunj.com'
+  ].filter(Boolean);
+
+  if (origin && allowedOrigins.some(allowed => origin.startsWith(allowed))) {
+    return origin;
+  }
+  return allowedOrigins[0] || '*';
 };
 
 serve(async (req) => {
   const origin = req.headers.get('origin');
-  const corsHeaders = getCorsHeaders(origin);
 
-  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': getAllowedOrigin(origin),
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-csrf-token',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Credentials': 'true',
+  };
+
+  const securityHeaders = {
+    'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Referrer-Policy': 'strict-origin-when-cross-origin'
+  };
+
+  if (req.method === 'OPTIONS') return new Response(null, { headers: { ...corsHeaders, ...securityHeaders } });
   if (req.method !== 'POST') return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } });
 
   try {
