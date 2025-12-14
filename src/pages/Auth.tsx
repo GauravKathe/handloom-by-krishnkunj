@@ -92,7 +92,7 @@ export default function Auth() {
           .eq("user_id", session.user.id)
           .eq("role", "admin")
           .single();
-        
+
         if (roleData) {
           navigate("/admin");
         } else {
@@ -100,7 +100,7 @@ export default function Auth() {
         }
       }
     };
-    
+
     checkAuthAndRedirect();
   }, [navigate]);
 
@@ -139,8 +139,8 @@ export default function Auth() {
   const recordLoginAttempt = async (email: string, success: boolean) => {
     try {
       await (supabase as any)
-        .rpc('record_login_attempt', { 
-          p_email: email, 
+        .rpc('record_login_attempt', {
+          p_email: email,
           p_success: success,
           p_ip_address: null // IP would need server-side detection
         });
@@ -286,7 +286,7 @@ export default function Auth() {
           .eq("user_id", data.user.id)
           .eq("role", "admin")
           .single();
-        
+
         if (roleData) {
           navigate("/admin");
         } else {
@@ -361,6 +361,10 @@ export default function Auth() {
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
       },
     });
 
