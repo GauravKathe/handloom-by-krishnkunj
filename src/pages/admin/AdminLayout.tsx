@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 import { Outlet, useNavigate, NavLink } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  LayoutDashboard, 
-  Package, 
-  ShoppingCart, 
-  Users, 
-  Star, 
-  FileText, 
-  Tag, 
-  BarChart3, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Package,
+  ShoppingCart,
+  Users,
+  Star,
+  FileText,
+  Tag,
+  BarChart3,
+  Settings,
   LogOut,
   Menu,
   X,
@@ -33,7 +33,7 @@ export default function AdminLayout() {
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    
+
     if (!session) {
       navigate('/auth');
       return;
@@ -53,7 +53,7 @@ export default function AdminLayout() {
       navigate('/');
       return;
     }
-    
+
     if (!hasAdminRole) {
       toast({
         title: "Access Denied",
@@ -89,8 +89,7 @@ export default function AdminLayout() {
     { icon: Tag, label: "Coupons", path: "/admin/coupons" },
     { icon: PieChart, label: "Coupon Analytics", path: "/admin/coupon-analytics" },
     { icon: History, label: "Activity Log", path: "/admin/activity-log" },
-    { icon: Shield, label: "Role Management", path: "/admin/role-management" },
-    { icon: Shield, label: "Auth Events", path: "/admin/auth-events" },
+
     { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
     { icon: Settings, label: "Settings", path: "/admin/settings" },
   ];
@@ -98,10 +97,9 @@ export default function AdminLayout() {
   return (
     <div className="min-h-screen flex w-full bg-background">
       {/* Sidebar - Desktop */}
-      <aside 
-        className={`hidden md:flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300 ${
-          sidebarOpen ? "w-64" : "w-20"
-        }`}
+      <aside
+        className={`hidden md:flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300 ${sidebarOpen ? "w-64" : "w-20"
+          }`}
       >
         <div className="p-4 border-b border-sidebar-border flex items-center justify-between">
           {sidebarOpen && (
@@ -124,10 +122,9 @@ export default function AdminLayout() {
               to={item.path}
               end={item.path === "/admin"}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                  isActive
-                    ? "bg-sidebar-accent text-sidebar-primary font-medium"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isActive
+                  ? "bg-sidebar-accent text-sidebar-primary font-medium"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
                 }`
               }
             >
@@ -177,10 +174,9 @@ export default function AdminLayout() {
                   end={item.path === "/admin"}
                   onClick={() => setMobileMenuOpen(false)}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                      isActive
-                        ? "bg-sidebar-accent text-sidebar-primary font-medium"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                    `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isActive
+                      ? "bg-sidebar-accent text-sidebar-primary font-medium"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/50"
                     }`
                   }
                 >

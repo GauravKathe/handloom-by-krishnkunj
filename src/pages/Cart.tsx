@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -53,7 +53,7 @@ export default function Cart() {
 
   const loadCart = async (userId: string) => {
     setLoading(true);
-    
+
     try {
       // Fetch cart items with products
       const { data: cartData, error: cartError } = await supabase
@@ -267,7 +267,7 @@ export default function Cart() {
                 </div>
 
                 <Button size="lg" className="w-full mb-4" asChild>
-                  <a href="/checkout">Proceed to Checkout</a>
+                  <Link to="/checkout">Proceed to Checkout</Link>
                 </Button>
 
                 <Button size="lg" variant="outline" className="w-full" asChild>

@@ -56,7 +56,7 @@ export default function ContentManagement() {
 
   useEffect(() => {
     loadContent();
-    
+
     const channel = supabase
       .channel('content-changes')
       .on(
@@ -91,11 +91,11 @@ export default function ContentManagement() {
       .single();
 
     if (data?.content && typeof data.content === 'object') {
-      const content = data.content as { 
-        bannerImages?: string[]; 
+      const content = data.content as {
+        bannerImages?: string[];
         bannerSlides?: BannerSlide[];
       };
-      
+
       if (content.bannerSlides) {
         setBannerSlides(content.bannerSlides);
       } else if (content.bannerImages) {
@@ -160,7 +160,7 @@ export default function ContentManagement() {
     const fileName = `banner-${Date.now()}.jpg`;
     const scanEndpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scan-upload`;
     const formData = new FormData();
-    formData.append('file', new Blob([fileOrBlob]));
+    formData.append('file', fileOrBlob);
     const getCookie = (name: string) => (document.cookie.split('; ').find(row => row.startsWith(name + '='))?.split('=')[1] || '');
     const scanResponse = await fetch(scanEndpoint, { method: 'POST', body: formData, credentials: 'include', headers: { 'x-csrf-token': getCookie('XSRF-TOKEN') || '' } });
     const scanResult = await scanResponse.json().catch(() => ({}));
@@ -435,13 +435,13 @@ export default function ContentManagement() {
                   </div>
                   <div className="flex-1">
                     <p className="font-medium">Banner {idx + 1}</p>
-                    <p className="text-sm text-muted-foreground truncate">{slide.image}</p>
+
                   </div>
                 </div>
               </div>
             ))}
           </div>
-          
+
           {/* Upload New Banner with Guidelines */}
           <div className="mt-4 space-y-4">
             {/* Crop Tool Toggle */}
@@ -536,24 +536,23 @@ export default function ContentManagement() {
               {showPreview && bannerSlides[previewIndex] && (
                 <div className="border rounded-lg overflow-hidden">
                   <div className="relative w-full flex justify-center">
-                    <img 
-                      src={bannerSlides[previewIndex].image} 
+                    <img
+                      src={bannerSlides[previewIndex].image}
                       alt="Banner preview"
                       className="w-full h-auto max-h-[50vh] object-contain"
                     />
                   </div>
-                  
+
                   {bannerSlides.length > 1 && (
                     <div className="flex items-center justify-center gap-2 p-3 bg-background/50">
                       {bannerSlides.map((_, idx) => (
                         <button
                           key={idx}
                           onClick={() => setPreviewIndex(idx)}
-                          className={`h-2 rounded-full transition-all ${
-                            previewIndex === idx 
-                              ? 'w-6 bg-primary' 
-                              : 'w-2 bg-muted-foreground/40 hover:bg-muted-foreground/70'
-                          }`}
+                          className={`h-2 rounded-full transition-all ${previewIndex === idx
+                            ? 'w-6 bg-primary'
+                            : 'w-2 bg-muted-foreground/40 hover:bg-muted-foreground/70'
+                            }`}
                         />
                       ))}
                     </div>

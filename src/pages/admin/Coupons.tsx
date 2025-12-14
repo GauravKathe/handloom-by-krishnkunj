@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { invokeAdminFunction } from "@/lib/adminApi";
 import type { Coupon as CouponType } from '@/types';
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -75,7 +76,7 @@ export default function AdminCoupons() {
 
     if (!error && data) {
       const statsMap = new Map<string, CouponStats>();
-      
+
       data.forEach((order) => {
         const code = order.coupon_code!;
         if (!statsMap.has(code)) {
@@ -86,7 +87,7 @@ export default function AdminCoupons() {
             unique_customers: 0,
           });
         }
-        
+
         const stats = statsMap.get(code)!;
         stats.total_uses++;
         stats.total_revenue += Number(order.total_amount);
@@ -119,8 +120,8 @@ export default function AdminCoupons() {
     try {
       if (editingCoupon) {
         const oldData = { ...editingCoupon };
-        const { data: resp, error } = await supabase.functions.invoke('admin-manage-coupons', {
-          body: { action: 'update', coupon: { ...couponData, id: editingCoupon.id } }
+        const { data: resp, error } = await invokeAdminFunction('admin-manage-coupons', {
+          action: 'update', coupon: { ...couponData, id: editingCoupon.id }
         });
 
         if (error) throw error;
@@ -131,13 +132,13 @@ export default function AdminCoupons() {
         resetForm();
         loadCoupons();
       } else {
-        const { data: resp, error } = await supabase.functions.invoke('admin-manage-coupons', {
-          body: { action: 'create', coupon: couponData }
+        const { data: resp, error } = await invokeAdminFunction('admin-manage-coupons', {
+          action: 'create', coupon: couponData
         });
 
         if (error) throw error;
 
-        await logActivity('create', 'coupon', resp?.coupon?.id || null, null, couponData);
+        await logActivity('create', 'coupon', (resp as any)?.coupon?.id || null, null, couponData);
         toast({ title: 'Coupon created successfully' });
         setDialogOpen(false);
         resetForm();
@@ -166,7 +167,7 @@ export default function AdminCoupons() {
 
     const coupon = coupons.find(c => c.id === id);
     try {
-      const { error } = await supabase.functions.invoke('admin-manage-coupons', { body: { action: 'delete', coupon: { id } } });
+      const { error } = await invokeAdminFunction('admin-manage-coupons', { action: 'delete', coupon: { id } });
       if (error) throw error;
       await logActivity("delete", "coupon", id, coupon, null);
       toast({ title: "Coupon deleted successfully" });

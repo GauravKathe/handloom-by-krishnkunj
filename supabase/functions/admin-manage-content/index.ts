@@ -1,37 +1,31 @@
+
 // @ts-ignore
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // @ts-ignore
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 
 declare const Deno: any;
 
-const getAllowedOrigin = (origin: string | null): string => {
-  const allowedOrigins = [
-    Deno.env.get('SITE_URL') || '',
-    'http://localhost:8080',
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'https://lovable.dev',
-    'https://gptengineer.app',
-    'https://handloombykrishnkunj.com',
-    'https://www.handloombykrishnkunj.com'
-  ].filter(Boolean);
+const getCorsHeaders = (origin: string | null) => {
+  // Allow any localhost or our production domains
+  const isAllowed = origin && (
+    origin.includes('localhost') ||
+    origin.includes('handloombykrishnkunj') ||
+    origin.includes('lovable') ||
+    origin.includes('supabase')
+  );
 
-  if (origin && allowedOrigins.some(allowed => origin.startsWith(allowed))) {
-    return origin;
-  }
-  return allowedOrigins[0] || '*';
-};
-
-serve(async (req: any) => {
-  const origin = req.headers.get('origin');
-
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': getAllowedOrigin(origin),
+  return {
+    'Access-Control-Allow-Origin': isAllowed ? origin : '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-csrf-token',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Credentials': 'true',
   };
+};
+
+serve(async (req: any) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
 
   const securityHeaders = {
     'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
@@ -44,12 +38,20 @@ serve(async (req: any) => {
   if (req.method !== 'POST') return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } });
 
   try {
+    // Environment check
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Missing Supabase environment variables');
+      return new Response(JSON.stringify({ error: 'Configuration error: Missing env vars' }), { status: 500, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } });
+    }
+
     let authHeader = req.headers.get('authorization') || '';
     if (!authHeader) {
       const cookies = req.headers.get('cookie') || '';
       const match = cookies.split(';').map((s: string) => s.trim()).find((c: string) => c.startsWith('sb_jwt='));
       const token = match ? match.split('=')[1] : null;
-      if (token) authHeader = `Bearer ${token}`;
+      if (token) authHeader = `Bearer ${token} `;
     }
     if (!authHeader) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } });
 

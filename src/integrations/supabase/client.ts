@@ -11,10 +11,9 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // NOTE: Use cookie-based sessions where possible. Avoid localStorage for JWTs.
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    // Avoid client-side persisted sessions in localStorage to reduce XSS risk.
-    // Persisting session client-side is disabled; session cookie management should be handled server-side.
-    persistSession: false,
-    autoRefreshToken: false,
+    // Enable client-side persisted sessions in localStorage.
+    persistSession: true,
+    autoRefreshToken: true,
     detectSessionInUrl: true,
   },
 });
