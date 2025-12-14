@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { stripHtml } from "@/lib/htmlUtils";
 
 export const MarqueeBanner = () => {
-  const [content, setContent] = useState<string>("Welcome to our store! Free shipping on orders over ₹2000");
+  const [content, setContent] = useState<string>("");
   const [isVisible, setIsVisible] = useState(true);
   const [isEnabled, setIsEnabled] = useState(true);
 

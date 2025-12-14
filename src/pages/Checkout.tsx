@@ -673,8 +673,8 @@ export default function Checkout() {
                 <div className="flex flex-col items-center flex-1">
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${currentStep >= step.number
-                        ? "bg-primary border-primary text-primary-foreground"
-                        : "border-border text-muted-foreground"
+                      ? "bg-primary border-primary text-primary-foreground"
+                      : "border-border text-muted-foreground"
                       }`}
                   >
                     <step.icon className="w-5 h-5" />
@@ -919,8 +919,8 @@ export default function Checkout() {
                       key={method.id}
                       onClick={() => setPaymentMethod(method.id as any)}
                       className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${paymentMethod === method.id
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
                         }`}
                     >
                       <div className="flex items-center gap-3">
@@ -931,8 +931,8 @@ export default function Checkout() {
                         </div>
                         <div
                           className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === method.id
-                              ? "border-primary"
-                              : "border-border"
+                            ? "border-primary"
+                            : "border-border"
                             }`}
                         >
                           {paymentMethod === method.id && (
@@ -1025,13 +1025,7 @@ export default function Checkout() {
                 </div>
               )}
 
-              {calculateDeliveryCharges() === 0 && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
-                  <p className="text-sm text-blue-700">
-                    🚚 Free delivery on orders above ₹5,000
-                  </p>
-                </div>
-              )}
+
             </Card>
           </div>
         </div>
