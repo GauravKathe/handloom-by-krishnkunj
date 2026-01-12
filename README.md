@@ -49,11 +49,10 @@ The focus is on **elegant UI**, **responsive design**, and a **scalable frontend
 | Category        | Technology                         |
 |-----------------|------------------------------------|
 | Frontend        | React                              |
-| Language        | TypeScript                         |
+| Backend         | Supabase                           |
 | Build Tool      | Vite                               |
 | Styling         | Tailwind CSS                       |
-| UI Components   | shadcn/ui                          |
-| Deployment      | Web Hosting with Custom Domain     |
+| Deployment      | Hostinger & Vercel                 |
 
 ---
 
