@@ -1,28 +1,66 @@
-# Welcome to your Lovable project
+# HandloomByKrishnKunj
+# 🧵 HandloomByKrishnKunj – Paithani Saree E-Commerce Platform
 
-## Project info
+**HandloomByKrishnKunj** is a client-based e-commerce web platform developed to promote and sell **authentic Indian Paithani sarees** online.  
+The platform blends **traditional Indian handloom heritage** with a **modern digital shopping experience**, enabling customers to explore collections, understand craftsmanship, and connect with the brand seamlessly.
 
-**URL**: https://lovable.dev/projects/f2d4519f-8d9a-423c-a408-ed193244a091
+🌐 **Live Website:** https://www.handloombykrishnkunj.com
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## 🛍️ Project Overview
 
-**Use Lovable**
+This project was built for a handloom saree business to establish a strong digital presence and reach customers beyond physical stores.  
+The focus is on **elegant UI**, **responsive design**, and a **scalable frontend architecture** suitable for future e-commerce expansion.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/f2d4519f-8d9a-423c-a408-ed193244a091) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## ✨ Features
 
-**Use your preferred IDE**
+### 🏠 Homepage & Brand Showcase
+- Visually rich landing page inspired by Indian culture
+- Smooth animations and transitions
+- Highlights Paithani heritage and brand story
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 👗 Product Display & Collections
+- Saree listings with high-quality visuals
+- Category-based browsing (e.g., Traditional, Bridal, Festival Wear)
+- Structured product layout for easy exploration
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 🔍 User-Friendly Navigation
+- Clean and intuitive navigation flow
+- Mobile-first responsive design
+- Optimized layouts for all screen sizes
 
-Follow these steps:
+### 🎨 UI & Experience
+- Elegant color palette inspired by Paithani silk
+- Reusable UI components
+- Modern, minimal, and culturally aligned design
 
-```sh
+### ⚡ Performance Optimized
+- Fast page loads using Vite
+- Optimized assets and responsive images
+- Smooth user interactions
+
+---
+
+## 🛠️ Tech Stack
+
+| Category        | Technology                         |
+|-----------------|------------------------------------|
+| Frontend        | React                              |
+| Language        | TypeScript                         |
+| Build Tool      | Vite                               |
+| Styling         | Tailwind CSS                       |
+| UI Components   | shadcn/ui                          |
+| Deployment      | Web Hosting with Custom Domain     |
+
+---
+
+### Local Development Setup
+
+Follow the steps below to run the project locally:
+
 # Step 1: Clone the repository using the project's Git URL.
 git clone <YOUR_GIT_URL>
 
@@ -34,40 +72,3 @@ npm i
 
 # Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/f2d4519f-8d9a-423c-a408-ed193244a091) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
